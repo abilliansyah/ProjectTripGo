@@ -1,31 +1,76 @@
 // app/(auth)/login/page.tsx
+// Kode Login Token-Based dengan perbaikan TypeScript dan Styling
 
 import React, { useState, FormEvent, CSSProperties } from 'react'; 
 import axios, { AxiosError } from 'axios'; 
 import { useRouter } from 'next/navigation';
-import axiosInstance from '@/utils/axiosInstance'; // Ganti jika path tidak sesuai
+import axiosInstance from '@/utils/axiosInstance'; // Sesuaikan path jika perlu
 
 // 1. Definisikan Tipe Respons API Login
 interface LoginResponse {
   message: string;
-  access_token: string; // Kunci yang mengembalikan token dari Laravel
+  access_token: string; 
   token_type: string;
   user?: any; 
 }
 
-// 2. Terapkan Tipe ke Objek Styles (Mengatasi Code 2322)
+// 2. Terapkan Tipe ke Objek Styles
 const styles: Record<string, CSSProperties> = { 
-  container: { maxWidth: '400px', margin: '50px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
-  title: { textAlign: 'center', color: '#333' },
-  form: { display: 'flex', flexDirection: 'column' },
-  label: { marginBottom: '5px', fontWeight: 'bold' },
-  input: { padding: '10px', marginBottom: '15px', border: '1px solid #ddd', borderRadius: '4px' },
-  button: { padding: '10px', backgroundColor: '#5c67f2', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' },
-  error: { color: 'red', textAlign: 'center', marginBottom: '10px', border: '1px solid #fdd', padding: '10px', backgroundColor: '#fee' }
+  card: { 
+    maxWidth: '400px', 
+    width: '100%',
+    padding: '30px', 
+    border: '1px solid #e0e0e0', 
+    borderRadius: '10px', 
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+    backgroundColor: 'white'
+  },
+  title: { 
+    textAlign: 'center', 
+    color: '#1a202c', 
+    marginBottom: '20px',
+    fontSize: '1.8rem'
+  },
+  form: { 
+    display: 'flex', 
+    flexDirection: 'column' 
+  },
+  label: { 
+    marginBottom: '8px', 
+    fontWeight: '600',
+    color: '#4a5568'
+  },
+  input: { 
+    padding: '12px', 
+    marginBottom: '20px', 
+    border: '1px solid #cbd5e0', 
+    borderRadius: '6px',
+    fontSize: '1rem'
+  },
+  button: { 
+    padding: '12px', 
+    backgroundColor: '#3b82f6', // Biru
+    color: 'white', 
+    border: 'none', 
+    borderRadius: '6px', 
+    cursor: 'pointer',
+    marginTop: '10px',
+    transition: 'background-color 0.3s'
+  },
+  error: { 
+    color: '#e53e3e', // Merah
+    textAlign: 'center', 
+    marginBottom: '15px', 
+    padding: '10px', 
+    backgroundColor: '#fff5f5',
+    border: '1px solid #feb2b2',
+    borderRadius: '6px'
+  }
 };
 
+// 3. Komponen Utama
 export default function LoginPage(): React.ReactNode {
-  // Terapkan Tipe ke State
+  // State
   const [email, setEmail] = useState<string>(''); 
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -33,14 +78,13 @@ export default function LoginPage(): React.ReactNode {
   
   const router = useRouter();
 
-  // 3. Terapkan Tipe FormEvent (Mengatasi Code 7006)
+  // Handler Login
   const handleLogin = async (e: FormEvent): Promise<void> => {
     e.preventDefault(); 
     setError('');
     setLoading(true);
 
     try {
-      // Panggil endpoint login menggunakan instance Axios
       const response = await axiosInstance.post<LoginResponse>('/login', {
         email: email,
         password: password,
@@ -49,38 +93,34 @@ export default function LoginPage(): React.ReactNode {
       const { access_token } = response.data;
 
       if (access_token) {
-        // Simpan token untuk otentikasi selanjutnya
         localStorage.setItem('auth_token', access_token); 
-        router.push('/dashboard'); // Ganti dengan rute dashboard Anda
+        router.push('/dashboard'); 
       } else {
         setError('Login berhasil, tapi server tidak mengembalikan token.');
       }
 
-    } catch (err: unknown) { // 4. Tangani Error 'unknown' (Mengatasi Code 18046)
-      
+    } catch (err: unknown) { 
       if (axios.isAxiosError(err) && err.response) { 
-        // Tangani error yang berasal dari server (misalnya 401, 422)
         const axiosError = err as AxiosError<{ message: string }>; 
         const errorMessage = axiosError.response?.data?.message || 'Kredensial tidak valid.';
         setError(errorMessage);
       } else {
-        // Tangani error jaringan (API tidak bisa dijangkau)
         setError('Gagal terhubung ke API. Cek status Vercel/Railway.');
       }
-      console.error('Error Login:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  // 4. JSX (Struktur Form yang Dijamin Benar)
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>Login BTM Travel</h1>
+    <div style={styles.card}>
+      <h1 style={styles.title}>Masuk ke Akun Anda</h1>
       <form onSubmit={handleLogin} style={styles.form}>
         
         {error && <p style={styles.error}>{error}</p>}
 
-        <label style={styles.label} htmlFor="email">Email:</label>
+        <label style={styles.label} htmlFor="email">Alamat Email</label>
         <input
           style={styles.input}
           type="email"
@@ -88,9 +128,10 @@ export default function LoginPage(): React.ReactNode {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          disabled={loading}
         />
 
-        <label style={styles.label} htmlFor="password">Password:</label>
+        <label style={styles.label} htmlFor="password">Password</label>
         <input
           style={styles.input}
           type="password"
@@ -98,13 +139,15 @@ export default function LoginPage(): React.ReactNode {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          disabled={loading}
         />
 
+        {/* Ini adalah tombol (btn) submit Anda */}
         <button 
           style={styles.button} 
           type="submit" 
           disabled={loading}>
-          {loading ? 'Memproses...' : 'Login'}
+          {loading ? 'Memproses Login...' : 'Login Sekarang'}
         </button>
       </form>
     </div>
