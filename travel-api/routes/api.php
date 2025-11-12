@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\CityController;
 use App\Http\Controllers\Api\V1\TripSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
+use App\Http\Controllers\ProductController;
 
 
 /*
@@ -39,4 +40,5 @@ Route::prefix('v1')->group(function () {
     // --- Rute publik Anda yang sudah ada ---
     Route::get('/trips/search', [TripSearchController::class, 'search']);
     Route::apiResource('cities', CityController::class);
+    Route::get('/products', [ProductController::class, 'index']);
 });

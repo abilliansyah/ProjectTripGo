@@ -18,7 +18,7 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-    'http://localhost:3000',
+    'https://project-trip-go.vercel.app/',
     ],
 
     'allowed_origins_patterns' => [],
