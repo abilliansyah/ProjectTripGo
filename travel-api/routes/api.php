@@ -28,6 +28,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/user', [AuthController::class, 'user']);
         Route::post('/bookings', [App\Http\Controllers\Api\V1\BookingController::class, 'store']);
+        Route::get('/health', function () {
+        return response()->json(['status' => 'ok', 'env' => env('APP_ENV')]);
+        });
 
         // (Nanti rute booking dan lainnya akan masuk ke sini)
     });
