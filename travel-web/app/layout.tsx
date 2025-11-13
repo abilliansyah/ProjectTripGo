@@ -11,7 +11,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <head>
-        <title>BTM Travel App</title>
+        <title>TripGo</title>
         {/* Tambahkan tag meta lain di sini */}
       </head>
       <body>
