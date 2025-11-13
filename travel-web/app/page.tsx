@@ -8,7 +8,7 @@ export default function HomePage() {
 
   useEffect(() => {
     // Redirect ke halaman login
-    router.push("/auth/login");
+    router.push("/login");
   }, [router]);
 
   return null; // Tidak menampilkan konten apapun di halaman utama
