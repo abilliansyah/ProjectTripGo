@@ -18,7 +18,8 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-    'https://project-trip-go.vercel.app',
+    'https://projecttripgo-production.up.railway.app',
+    'https://project-trip-go-git-main-abilliansyahs-projects.vercel.app',
     ],
 
     'allowed_origins_patterns' => [],
