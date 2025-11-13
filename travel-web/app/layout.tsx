@@ -1,23 +1,10 @@
-// app/layout.tsx
+import "./globals.css";
+import { ReactNode } from "react";
 
-import React from 'react';
-
-// Tipe untuk Props Layout (children)
-interface RootLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <head>
-        <title>TripGo</title>
-        {/* Tambahkan tag meta lain di sini */}
-      </head>
-      <body>
-        {/* CHILDREN di sini akan merender semua rute lainnya, termasuk AuthLayout dan LoginPage */}
-        {children} 
-      </body>
+    <html lang="id">
+      <body>{children}</body>
     </html>
   );
 }
