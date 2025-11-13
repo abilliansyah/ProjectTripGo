@@ -2,81 +2,125 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-// Pastikan path ke AuthContext Anda benar
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth, User } from '@/lib/AuthContext'; 
-// Asumsi 'User' dari AuthContext sekarang memiliki properti 'email'
 
 // --- Definisi Tipe Data untuk Tabel ---
-// Tipe ini harus sesuai dengan data yang dikembalikan oleh Laravel API Anda
 interface UserData {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user'; // Asumsi role juga datang dari API
   created_at: string;
 }
 
-// --- Data Simulasi (Ganti dengan Panggilan API Nyata ke Laravel) ---
-const mockUsers: UserData[] = [
-  { id: 2, name: 'Budi Santoso', email: 'budi@example.com', role: 'user', created_at: '2025-10-01' },
-  { id: 3, name: 'Siti Aisyah', email: 'siti@example.com', role: 'user', created_at: '2025-10-05' },
-];
-
-// --- Fungsi untuk Menggabungkan User Admin ---
-// Fungsi ini harus menyertakan semua properti dari UserData
-const formatAdminUser = (user: User): UserData => ({
-    id: user.id,
-    name: user.name,
-    email: user.email, // Properti 'email' harus tersedia dari AuthContext
-    role: user.role,
-    created_at: '2025-01-01', // Data statis untuk simulasi tanggal daftar
-});
-
+// URL dasar API
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://projecttripgo-production.up.railway.app';
 
 export default function UserManagementPage() {
-  const { user } = useAuth(); // User yang sedang login
+  const { user, logout } = useAuth();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // useEffect untuk Fetch Data dari Laravel API
-  useEffect(() => {
-    // Di sini Anda akan melakukan fetch ke: GET /api/admin/users
-    // Jangan lupa menyertakan token otentikasi admin di header!
-    
+  // Fungsi untuk mengambil data dari Laravel
+  const fetchUsers = useCallback(async () => {
+    if (!user) return; // Jangan fetch jika user belum terautentikasi
+
     setLoading(true);
+    setError(null);
+    const token = localStorage.getItem('authToken');
+    
+    if (!token) {
+        setError("Token otentikasi tidak ditemukan. Harap login kembali.");
+        setLoading(false);
+        logout();
+        return;
+    }
 
-    // --- SIMULASI PANGGILAN API ---
-    setTimeout(() => {
-      let allUsers: UserData[] = [...mockUsers];
+    try {
+      // PANGGILAN API NYATA KE LARAVEL
+      const response = await fetch(`${API_URL}/admin/users`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`, // Mengirim token otentikasi
+          'Content-Type': 'application/json',
+        },
+      });
 
-      // Tambahkan user admin yang sedang login ke daftar (jika ada)
-      if (user) {
-          // Format user admin agar sesuai dengan type UserData sebelum digabung
-          const adminUserFormatted = formatAdminUser(user);
-          allUsers = [adminUserFormatted, ...mockUsers.filter(u => u.id !== user.id)];
+      if (response.status === 401 || response.status === 403) {
+        // Token tidak valid atau tidak memiliki izin
+        setError("Akses ditolak. Token tidak valid atau kedaluwarsa.");
+        logout();
+        return;
       }
 
-      setUsers(allUsers);
-      setLoading(false);
-    }, 500); 
-    // --- AKHIR SIMULASI ---
+      if (!response.ok) {
+        throw new Error(`Gagal mengambil data: ${response.statusText}`);
+      }
 
-  }, [user]); // Dependensi user untuk memastikan update jika user berubah
-
-  // Fungsi-fungsi CRUD (akan memanggil endpoint Laravel: DELETE)
-  const handleDelete = (id: number) => {
-    if (confirm(`Yakin ingin menghapus User ID: ${id}?`)) {
-      // Panggil DELETE /api/admin/users/{id} di sini
+      const data: UserData[] = await response.json();
       
-      // Update state setelah sukses:
-      setUsers(users.filter(u => u.id !== id));
-      alert('User berhasil dihapus (simulasi)');
+      // Tambahkan logic untuk memastikan user admin yang sedang login ada di daftar (opsional)
+      // Jika Laravel sudah mengembalikan data user admin, bagian ini tidak diperlukan.
+      // setUsers(data); 
+
+      // Jika data dari Laravel hanya berupa array UserData[]
+      setUsers(data);
+
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setError(`Terjadi kesalahan saat koneksi ke server: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, logout]); // Dependensi pada user agar hanya fetch setelah otentikasi
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Fungsi DELETE (memanggil endpoint Laravel)
+  const handleDelete = async (id: number) => {
+    const token = localStorage.getItem('authToken');
+    if (!confirm(`Yakin ingin menghapus User ID: ${id}?`)) return;
+    if (!token) {
+        alert("Token tidak ada, gagal menghapus.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/admin/users/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Gagal menghapus user: ${response.statusText}`);
+        }
+
+        // Hapus dari state setelah sukses
+        setUsers(users.filter(u => u.id !== id));
+        alert('User berhasil dihapus!');
+    } catch (err) {
+        console.error("Error deleting user:", err);
+        alert(`Gagal menghapus user: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
   if (loading) {
-    return <div className="text-center mt-20 text-lg text-gray-600">Memuat data pengguna...</div>;
+    return <div className="text-center mt-20 text-lg text-gray-600">Memuat data pengguna dari API...</div>;
+  }
+
+  if (error) {
+    return (
+        <div className="text-center mt-20 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+            <h3 className="font-bold">Error Koneksi Data</h3>
+            <p>{error}</p>
+        </div>
+    );
   }
 
   return (
@@ -84,7 +128,7 @@ export default function UserManagementPage() {
       <h2 className="text-3xl font-bold text-gray-800">Kelola Akun Pengguna</h2>
       
       <div className="flex justify-end">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-150">
+        <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-150 shadow-md">
           + Tambah User Baru
         </button>
       </div>
@@ -117,8 +161,7 @@ export default function UserManagementPage() {
                   <button 
                     onClick={() => handleDelete(user.id)}
                     className="text-red-600 hover:text-red-900 transition duration-150 disabled:opacity-50"
-                    // Jangan biarkan admin menghapus dirinya sendiri
-                    disabled={user.role === 'admin' && user.id === (user?.id || -1)} 
+                    disabled={user.role === 'admin'} 
                   >
                     Hapus
                   </button>
