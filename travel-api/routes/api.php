@@ -28,6 +28,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/user', [AuthController::class, 'user']);
+        Route::apiResource('admin/users', \App\Http\Controllers\Admin\UserController::class);
         Route::post('/bookings', [App\Http\Controllers\Api\V1\BookingController::class, 'store']);
         Route::get('/health', function () {
         return response()->json(['status' => 'ok', 'env' => env('APP_ENV')]);
