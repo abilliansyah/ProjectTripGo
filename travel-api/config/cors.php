@@ -15,7 +15,7 @@ return [
 
     // Mengizinkan domain Vercel Anda dan domain lokal
     'allowed_origins' => [
-        'https://project-trip-go-git-main-abilliansyahs-projects.vercel.app', // Domain Vercel Anda
+        'https://project-trip-go.vercel.app/', // Domain Vercel Anda
         'http://localhost:3000', 
         'http://127.0.0.1:3000',
         'https://projecttripgo-production.up.railway.app', 
