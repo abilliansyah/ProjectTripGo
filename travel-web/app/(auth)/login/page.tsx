@@ -57,7 +57,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm">
-        <h1 className="text-3xl font-bold mb-8 text-center text-blue-600">TripGo Admin Login</h1>
+        <h1 className="text-3xl font-bold mb-8 text-center text-blue-600">TripGo Login</h1>
 
         {error && (
           <p className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm border border-red-300">

@@ -17,8 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
     // Tambahkan middleware ini ke grup 'api'
     $middleware->api(append: [
+        \Illuminate\Routing\Middleware\SubstituteBindings::class,
         \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
         \Illuminate\Session\Middleware\StartSession::class,
+        \App\Http\Middleware\HandleCors::class,
     ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
