@@ -15,6 +15,7 @@ class Kernel extends HttpKernel
      */
     protected $middleware = [
         // \App\Http\Middleware\TrustProxies::class,
+        \App\Http\Middleware\CorsMiddleware::class
         \Illuminate\Http\Middleware\HandleCors::class, // Jika Anda menggunakan bawaan Laravel (opsional, jika tidak ada)
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
@@ -38,8 +39,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            // Pastikan middleware 'throttle' atau Sanctum ada di sini (jika digunakan)
-            \App\Http\Middleware\CorsMiddleware::class, // <-- MIDDELWARE CORS KUSTOM ANDA HARUS DISINI
+            // Pastikan middleware 'throttle' atau Sanctum ada di sini (jika digunakan) // <-- MIDDELWARE CORS KUSTOM ANDA HARUS DISINI
             
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
