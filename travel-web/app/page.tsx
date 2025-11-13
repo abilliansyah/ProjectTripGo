@@ -1,35 +1,15 @@
-// app/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
-  const [products, setProducts] = useState<any[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/products`);
-        const data = await response.json();
-        setProducts(data);
-      } catch (error) {
-        console.error("Gagal ambil data:", error);
-      }
-    }
+    // Redirect ke halaman login
+    router.push("/auth/login");
+  }, [router]);
 
-    fetchData();
-  }, []);
-
-  return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Daftar Produk</h1>
-      <ul>
-        {products.map((p, i) => (
-          <li key={i} className="border-b py-2">
-            {p.name}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+  return null; // Tidak menampilkan konten apapun di halaman utama
 }
