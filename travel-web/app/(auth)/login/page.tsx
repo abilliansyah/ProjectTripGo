@@ -1,9 +1,10 @@
-// app/(auth)/login/page.tsx (Ganti SELURUH ISI file dengan kode ini)
+"use client";
 
-import React, { useState, FormEvent, CSSProperties } from 'react'; 
-import axios, { AxiosError } from 'axios'; 
+import React, { useState, FormEvent, CSSProperties } from 'react';
+import axios, { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import axiosInstance from '@/utils/axiosInstance'; // Sesuaikan path jika perlu
+// Sesuaikan path jika perlu
 
 // Interface dan Styles (Dipotong untuk kerapian, masukkan kode lengkap dari respon sebelumnya)
 // ... (Masukkan interface LoginResponse)
