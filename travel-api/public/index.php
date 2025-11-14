@@ -1,35 +1,5 @@
 <?php
 
-// *****************************************************************
-// * KUNCI: QUICK FIX CORS UNTUK MENGATASI PROXY SERVER YANG MEMBLOKIR
-// * BARIS INI DITAMBAHKAN DI BAGIAN PALING ATAS SETELAH <?php
-// *****************************************************************
-
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    // Ganti '*' dengan URL Vercel Anda jika Anda ingin lebih aman, contoh:
-    // header('Access-Control-Allow-Origin: https://nama-aplikasi-anda.vercel.app');
-    header('Access-Control-Allow-Origin: https://project-trip-go.vercel.app'); 
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400');
-}
-
-// Menangani permintaan OPTIONS (Preflight)
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
-    }
-
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
-        // Echo kembali header yang diminta oleh browser
-        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-    }
-    
-    // Memberi tahu proxy/browser bahwa request ini berhasil ditangani
-    exit(0); 
-}
-
-// ... Kode Framework Laravel yang sudah ada
-
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
