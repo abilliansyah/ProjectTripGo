@@ -1,54 +1,36 @@
-# STEP 1: Gunakan image PHP FPM sebagai base image
-FROM php:8.3-fpm-alpine
+# 1. Base PHP image
+FROM php:8.2-fpm
 
-RUN apk update && apk add --no-cache \
-    curl \
-    mysql-client \
-    git \
-    caddy \
-    supervisor \
-    # Tambahkan dependensi PHP (autoconf, dll.) jika Anda akan menggunakannya
-    autoconf \
-    # ... paket lainnya (m4, dpkg-dev, dll.)
-    # Ekstensi PHP yang umum untuk Laravel
-    && docker-php-ext-install pdo pdo_mysql opcache exif pcntl \
-    # HAPUS BARIS INI: adduser -D -g 'www-data' www-data
-    # Karena user www-data sudah ada di base image php-fpm
-    && rm -rf /var/cache/apk/*
+# 2. Install extensions
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    curl
 
-# STEP 2b: Instal ekstensi PHP (docker-php-ext-install)
-# Memisahkan ini dari langkah 'apk add' membantu isolasi masalah build.
-RUN docker-php-ext-install pdo pdo_mysql opcache exif pcntl
+# 3. Install required PHP extensions
+RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
 
-# STEP 3: Instal Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# 4. Install Composer
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-# STEP 4: Atur direktori kerja
-WORKDIR /app
+# 5. Set working directory
+WORKDIR /var/www/html
 
-# STEP 5: Salin start.sh secara eksplisit (PENTING untuk mengatasi 'not found')
-# Salin start.sh DULU sebelum menyalin seluruh proyek
-COPY start.sh /app/start.sh 
-RUN chmod +x /app/start.sh 
-
-# STEP 6: Salin sisa semua file proyek Anda ke dalam container
+# 6. Copy all project files
 COPY . .
 
-# STEP 7: Jalankan Composer Install (Build Process)
-RUN composer install --no-dev --optimize-autoloader && \
-    php artisan config:clear && \
-    php artisan view:clear
+# 7. Install dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-RUN chown -R www-data:www-data /app && \
-    chmod -R 755 /app
+# 8. Generate key
+RUN php artisan key:generate
 
-# STEP 8: Konfigurasi Caddyfile dan Copy ke lokasi yang benar
-# Menyalin Caddyfile setelah composer agar file vendor/ sudah ada jika diperlukan
-COPY Caddyfile /etc/caddy/Caddyfile
+# 9. Expose port
+EXPOSE 8000
 
-# STEP 9: Exposed Port
-EXPOSE 8080
-
-# STEP 10: Command Utama (Startup)
-# Jalankan skrip startup menggunakan path absolut
-CMD ["sh", "/app/start.sh"]
+# 10. Start Laravel server using $PORT
+CMD php artisan serve --host=0.0.0.0 --port=${PORT}
