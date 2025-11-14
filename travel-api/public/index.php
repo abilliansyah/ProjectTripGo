@@ -1,5 +1,51 @@
 <?php
 
+/**
+ * |--------------------------------------------------------------------------
+ * | QUICK FIX CORS (UNTUK MENGATASI PROXY RAILWAY / 404 PREFLIGHT)
+ * |--------------------------------------------------------------------------
+ * | Kode ini akan berjalan sebelum framework dimuat.
+ */
+
+// Mendapatkan Origin dari browser
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+// =========================================================================
+// GANTI DENGAN URL FRONTEND VERCEL SPESIFIK ANDA (TIDAK BOLEH MENGGUNAKAN '*')
+// =========================================================================
+$allowedOrigin = 'https://project-trip-go-git-main-abilliansyahs-projects.vercel.app'; 
+$allowedMethods = 'GET, POST, OPTIONS, PUT, DELETE';
+$allowedHeaders = 'Content-Type, X-Auth-Token, Origin, Authorization, X-Requested-With, Accept, Credentials';
+
+
+if ($origin) {
+    // 1. Tambahkan header CORS untuk request normal (termasuk POST/GET)
+    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Max-Age: 86400');
+}
+
+// 2. Jika request adalah OPTIONS (Preflight), tangani dan keluar
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    header('Access-Control-Allow-Methods: ' . $allowedMethods);
+    
+    // Header harus mencerminkan apa yang diminta oleh browser
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
+        header('Access-Control-Allow-Headers: ' . $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']);
+    } else {
+        header('Access-Control-Allow-Headers: ' . $allowedHeaders);
+    }
+    
+    // Kirim respons 200 OK dan keluar, mencegah request masuk ke framework
+    exit(0); 
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | KODE LARAVEL STANDAR DIMULAI DI BAWAH INI
+ * |--------------------------------------------------------------------------
+ */
+
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
@@ -42,3 +88,10 @@ $response = tap($kernel->handle(
 ))->send();
 
 $kernel->terminate($request, $response);
+```eof
+
+## 🛠️ Langkah Setelahnya (Wajib)
+
+1.  **Commit:** Lakukan *commit* untuk `public/index.php` yang baru.
+2.  **Periksa Database:** Cek kembali semua Environment Variables *Database* di Railway. Error 500 (`image_78afc7.png`) dan pesan "Attempting to connect to the database..." (`image_edad46.jpg`) adalah tanda koneksi *database* Anda gagal.
+3.  **Deploy Ulang:** Lakukan **Deployment Ulang** pada layanan Laravel API Anda di Railway.
