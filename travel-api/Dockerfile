@@ -48,7 +48,5 @@ RUN chmod +x ./start.sh
 EXPOSE 8080
 
 # STEP 11: Command Utama (Startup)
-# Pastikan Caddy berjalan di foreground dan menggunakan konfigurasi yang kita sediakan
-CMD ["./start.sh","caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
 # ATAU jika menggunakan start.sh untuk menjalankan FPM dan Caddy:
-# CMD ["./start.sh"]
+CMD ["./start.sh"]
