@@ -3,88 +3,41 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB; // Impor DB facade
 
 class AuthController extends Controller
 {
-    /**
-     * Registrasi user baru.
-     */
-    public function register(Request $request)
-    {
-        // 1. Validasi data
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed', // butuh 'password_confirmation'
-        ]);
-
-        // 2. Buat user
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            // 'role' akan otomatis 'customer' (sesuai setup migrasi User kita)
-        ]);
-
-        // 3. Login user setelah registrasi
-        auth()->login($user);
-
-        // 4. Kembalikan data user
-        return response()->json($user, 201); // 201 = Created
-    }
-
-    /**
-     * Login user.
-     */
+    // Method ini harus sesuai dengan route POST /v1/auth/login
     public function login(Request $request)
     {
-        $request->validate([
-        'email' => 'required|email',
-        'password' => 'required',
-        ]);
+        try {
+            // Coba lakukan query sederhana untuk menguji koneksi database
+            $users = DB::table('users')->limit(1)->get(); 
+            
+            // Jika query berhasil, kembalikan status OK
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Koneksi database berhasil! API berfungsi.',
+                'data' => $users // Tampilkan data user pertama
+            ], 200);
 
-    // Coba autentikasi user
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            // Jika gagal, kirim respon error
-            throw ValidationException::withMessages([
-                'email' => ['Email atau password salah.'],
-            ]);
+        } catch (\Exception $e) {
+            // Jika terjadi error (misalnya: koneksi database gagal)
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Koneksi Database GAGAL atau terjadi error server.',
+                'error_detail' => $e->getMessage() // Tampilkan detail error (hati-hati di produksi)
+            ], 500); 
         }
-
-        // Kode di bawah ini tidak akan jalan, tidak apa-apa
-        $user = User::where('email', $request->email)->firstOrFail();
-        $token = $user->createToken('auth-token')->plainTextToken;
-
+    }
+    
+    // Method register (biarkan kosong atau tambahkan tes database serupa)
+    public function register(Request $request)
+    {
         return response()->json([
-            'message' => 'Login berhasil',
-            'token' => $token,
-            'token_type' => 'Bearer',
-        ]);
-    }
-
-    /**
-     * Logout user.
-     */
-    public function logout(Request $request)
-    {
-        auth()->guard('web')->logout();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return response()->json(['message' => 'Logged out successfully']);
-    }
-
-    /**
-     * Mendapatkan data user yang sedang login.
-     */
-    public function user(Request $request)
-    {
-        return response()->json($request->user());
+            'status' => 'success',
+            'message' => 'Route Register Berfungsi. Lakukan tes database di login.'
+        ], 200);
     }
 }

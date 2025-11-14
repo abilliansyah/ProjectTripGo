@@ -11,7 +11,7 @@
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
 // =========================================================================
-// GANTI DENGAN URL FRONTEND VERCEL SPESIFIK ANDA (TIDAK BOLEH MENGGUNAKAN '*')
+// URL FRONTEND VERCEL SPESIFIK ANDA
 // =========================================================================
 $allowedOrigin = 'https://project-trip-go-git-main-abilliansyahs-projects.vercel.app'; 
 $allowedMethods = 'GET, POST, OPTIONS, PUT, DELETE';
@@ -90,8 +90,14 @@ $response = tap($kernel->handle(
 $kernel->terminate($request, $response);
 ```eof
 
-## 🛠️ Langkah Setelahnya (Wajib)
+---
 
-1.  **Commit:** Lakukan *commit* untuk `public/index.php` yang baru.
-2.  **Periksa Database:** Cek kembali semua Environment Variables *Database* di Railway. Error 500 (`image_78afc7.png`) dan pesan "Attempting to connect to the database..." (`image_edad46.jpg`) adalah tanda koneksi *database* Anda gagal.
-3.  **Deploy Ulang:** Lakukan **Deployment Ulang** pada layanan Laravel API Anda di Railway.
+## 🛠️ Langkah Perbaikan Akhir (Wajib Dilakukan)
+
+Setelah Anda mengganti `public/index.php`, Anda harus fokus pada **Error 500** Anda, yang bukan masalah CORS.
+
+1.  **Commit dan Deploy Ulang:** Lakukan *commit* untuk perubahan `public/index.php` dan *deploy* ulang layanan API Laravel Anda di Railway.
+2.  **Perbaiki Koneksi Database (Kunci Error 500):** *Error* 500 saat *login* hampir selalu berarti aplikasi tidak dapat terhubung ke *database*.
+    * Masuk ke dashboard Railway Anda.
+    * Buka layanan **MySQL** dan layanan **ProjectTripGo**.
+    * Pastikan **Environment Variables** (`DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`) pada layanan Laravel API Anda sudah benar dan sesuai dengan detail koneksi MySQL yang disediakan Railway. Pesan **"Attempting to connect to the database..."** di MySQL Anda adalah penyebab Error 500.
