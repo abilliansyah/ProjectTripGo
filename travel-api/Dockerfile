@@ -29,8 +29,6 @@ WORKDIR /app
 # STEP 5: Salin start.sh secara eksplisit (PENTING untuk mengatasi 'not found')
 # Salin start.sh DULU sebelum menyalin seluruh proyek
 COPY start.sh /app/start.sh 
-
-# Wajib: Atur izin eksekusi (Mengatasi 'Permission denied')
 RUN chmod +x /app/start.sh 
 
 # STEP 6: Salin sisa semua file proyek Anda ke dalam container
@@ -48,4 +46,4 @@ EXPOSE 8080
 
 # STEP 10: Command Utama (Startup)
 # Jalankan skrip startup menggunakan path absolut
-CMD ["/app/start.sh"]
+CMD ["sh", "/app/start.sh"]
