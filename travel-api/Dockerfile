@@ -26,9 +26,6 @@ COPY . .
 # 7. Install dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# 8. Generate key
-RUN php artisan key:generate
-
 # 9. Expose port
 EXPOSE 8000
 
