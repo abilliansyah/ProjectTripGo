@@ -161,7 +161,7 @@ export default function LoginPage() {
             {/* Link Daftar */}
             <p className="text-center mt-6 text-gray-600 text-sm">
               belum punya akun? 
-              <Link href="/auth/register" className="text-blue-600 hover:text-blue-800 font-semibold transition duration-150">daftar disini</Link>
+              <Link href="/register" className="text-blue-600 hover:text-blue-800 font-semibold transition duration-150">daftar disini</Link>
             </p>
 
           </div>
