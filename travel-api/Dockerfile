@@ -35,7 +35,9 @@ RUN chmod +x /app/start.sh
 COPY . .
 
 # STEP 7: Jalankan Composer Install (Build Process)
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader && \
+    php artisan config:clear && \
+    php artisan view:clear
 
 # STEP 8: Konfigurasi Caddyfile dan Copy ke lokasi yang benar
 # Menyalin Caddyfile setelah composer agar file vendor/ sudah ada jika diperlukan
