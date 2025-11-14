@@ -1,10 +1,9 @@
 #!/bin/bash
-composer install
-php artisan migrate --force
-php artisan serve --host=0.0.0.0 --port=$PORT
-/usr/sbin/php-fpm &
-# 2. Tunggu sebentar agar PHP-FPM sempat berjalan (opsional, tapi disarankan)
-sleep 5
-# 3. Jalankan Caddy di foreground (Wajib: proses utama harus di foreground)
-# Caddy akan melayani permintaan di Port 8080 dan meneruskannya ke PHP-FPM
-caddy run --config /etc/Caddyfile --adapter caddyfile --watch
+# 1. Jalankan PHP-FPM di background pada Port 9000
+echo "Starting PHP-FPM..."
+php-fpm -D
+
+# 2. Jalankan Caddy di foreground (Wajib agar container tetap hidup)
+echo "Starting Caddy on :8080..."
+# Pastikan Caddyfile Anda telah disalin ke lokasi ini oleh Dockerfile
+caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
