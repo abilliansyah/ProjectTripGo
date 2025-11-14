@@ -39,6 +39,9 @@ RUN composer install --no-dev --optimize-autoloader && \
     php artisan config:clear && \
     php artisan view:clear
 
+RUN chown -R www-data:www-data /app && \
+    chmod -R 755 /app
+
 # STEP 8: Konfigurasi Caddyfile dan Copy ke lokasi yang benar
 # Menyalin Caddyfile setelah composer agar file vendor/ sudah ada jika diperlukan
 COPY Caddyfile /etc/caddy/Caddyfile
