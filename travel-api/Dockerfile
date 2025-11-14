@@ -1,17 +1,20 @@
 # STEP 1: Gunakan image PHP FPM sebagai base image
 FROM php:8.3-fpm-alpine
 
-# STEP 2: Instal dependensi sistem yang dibutuhkan
 RUN apk update && apk add --no-cache \
     curl \
     mysql-client \
     git \
     caddy \
     supervisor \
-    # Dependensi build untuk ekstensi PHP
-    $PHPIZE_DEPS \
-    # Tambahkan user www-data untuk izin file
-    && adduser -D -g 'www-data' www-data
+    # Tambahkan dependensi PHP (autoconf, dll.) jika Anda akan menggunakannya
+    autoconf \
+    # ... paket lainnya (m4, dpkg-dev, dll.)
+    # Ekstensi PHP yang umum untuk Laravel
+    && docker-php-ext-install pdo pdo_mysql opcache exif pcntl \
+    # HAPUS BARIS INI: adduser -D -g 'www-data' www-data
+    # Karena user www-data sudah ada di base image php-fpm
+    && rm -rf /var/cache/apk/*
 
 # STEP 2b: Instal ekstensi PHP (docker-php-ext-install)
 # Memisahkan ini dari langkah 'apk add' membantu isolasi masalah build.
