@@ -1,9 +1,9 @@
 FROM php:8.2-fpm
 
-# Install system dependencies
+# Install extensions
 RUN apt-get update && apt-get install -y \
     zip unzip git curl libpng-dev libonig-dev libxml2-dev \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
+    && docker-php-ext-install pdo pdo_mysql mbstring bcmath gd
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -13,18 +13,19 @@ WORKDIR /var/www/html
 # Copy composer files
 COPY composer.json composer.lock ./
 
-# Install PHP dependencies (tanpa artisan discover)
+# Install dependencies (disable auto-discovery)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# Copy all project files
+# Copy rest of project
 COPY . .
 
-# Setelah semua file ada → jalankan artisan discover
+# Discover packages manually (abaikan error)
 RUN php artisan package:discover --ansi || true
 
-# Set permission folder laravel
+# Fix folder permissions
 RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8000
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=${PORT}"]
+# USE PHP BUILT-IN SERVER INSTEAD OF ARTISAN SERVE
+CMD php -S 0.0.0.0:${PORT} -t public
