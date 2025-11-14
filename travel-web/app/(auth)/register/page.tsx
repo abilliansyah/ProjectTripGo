@@ -12,7 +12,7 @@ import { Mail, Lock, Phone, CheckCircle } from 'lucide-react';
 // --- KONFIGURASI API ---
 // Ganti dengan URL dasar API Laravel Anda.
 // Contoh: 'https://nama-aplikasi-anda.up.railway.app'
-const API_BASE_URL = 'projecttripgo-production.up.railway.app'; 
+const API_BASE_URL = 'mysql://root:pBltpAWUyrzWcPvIbwSLWgjCKVEzQSlr@maglev.proxy.rlwy.net:19031/railway'; 
 const REGISTER_ENDPOINT = `${API_BASE_URL}/api/register`;
 
 // Styling card background sesuai dengan HTML sebelumnya
