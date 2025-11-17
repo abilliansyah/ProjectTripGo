@@ -1,33 +1,25 @@
-import RegisterForm from '@/components/RegisterForm';
-import Link from 'next/link';
+import React from 'react';
+import RegisterForm from '../../components/RegisterForm'; 
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8" style={{backgroundImage: 'linear-gradient(to right, #f0f4ff, #ffffff)'}}>
-      <div className="max-w-xl w-full space-y-8 bg-white p-10 rounded-2xl shadow-xl">
+    // 1. Container Penuh Layar: Membuat halaman memiliki tinggi minimum layar dan centering.
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 sm:p-6">
+      
+      {/* 2. Card/Container Form: Menambahkan lebar, latar belakang putih, shadow, dan padding */}
+      <div className="w-full max-w-xl bg-white p-8 sm:p-10 rounded-xl shadow-2xl border border-gray-100">
         
-        {/* Header Sesuai Desain */}
-        <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900">
-            Silakan Buat Akun!
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
+        {/* Header/Judul Card */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Silakan Buat Akun!</h1>
+          <p className="mt-2 text-lg text-gray-500">
             Buat akun TripGo sebelum memulai perjalanan
           </p>
         </div>
-        
-        {/* Form Register */}
+
+        {/* Memanggil Komponen Form */}
         <RegisterForm />
         
-        {/* Link Login */}
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-600">
-            Sudah punya akun? {' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Masuk di sini
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );
