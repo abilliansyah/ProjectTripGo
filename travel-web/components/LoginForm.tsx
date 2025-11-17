@@ -1,84 +1,138 @@
-// components/LoginForm.tsx
-"use client"; 
+'use client';
 
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+// Import ikon (Contoh menggunakan react-icons, pastikan Anda telah menginstal 'react-icons')
+import { Mail, Lock } from 'lucide-react'; // Atau ikon dari library lain, misalnya react-icons/md/MdMailOutline, dll.
 
-// Ambil URL Base API dari .env.local
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function LoginForm() {
-  const router = useRouter();
-  const { login, isAuthenticated } = useAuth(); // Ambil fungsi login dan status
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   
-  const [formData, setFormData] = useState({ 
-    email: '', 
-    password: '' 
-  });
-  const [message, setMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Jika sudah login, redirect langsung
-  if (isAuthenticated) {
-    router.push('/dashboard');
-    return null; 
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setMessage('Processing...');
+    setError('');
+    setLoading(true);
+
+    if (!API_BASE_URL) {
+      setError('Error: NEXT_PUBLIC_API_BASE_URL tidak terdefinisi.');
+      setLoading(false);
+      return;
+    }
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/login`, formData);
-      
-      const { access_token, user } = response.data;
-      
-      // Panggil fungsi login dari AuthContext
-      login(access_token, user); 
-      
-      setMessage(`Login berhasil! Selamat datang, ${user.first_name}.`);
-      router.push('/dashboard'); 
+      const response = await axios.post(`${API_BASE_URL}/login`, {
+        email,
+        password,
+      });
 
-    } catch (error) {
-      setIsSubmitting(false);
-      if (axios.isAxiosError(error) && error.response) {
-        // Tampilkan pesan error dari Laravel
-        const errorMessage = error.response.data.message || 'Gagal login. Periksa email dan password Anda.';
-        setMessage(`Error: ${errorMessage}`);
-      } else {
-        setMessage('Terjadi kesalahan jaringan atau CORS.');
-      }
+      const { token, user } = response.data.data;
+      login(token, user);
+      router.push('/dashboard');
+
+    } catch (err: any) {
+      // Penanganan error...
+      setError('Login gagal. Silakan cek kredensial Anda.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '15px', maxWidth: '400px', margin: '50px auto', padding: '30px', border: '1px solid #ddd', borderRadius: '8px' }}>
-      <h2>Login ke TripGo</h2>
+    <form onSubmit={handleSubmit} className="space-y-6">
       
-      <div>
-        <label>Alamat Email</label>
-        <input type="email" name="email" placeholder="Masukkan Alamat Email" onChange={handleChange} required disabled={isSubmitting} />
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative text-sm" role="alert">
+          {error}
+        </div>
+      )}
+
+      {/* Input Email */}
+      <div className="relative">
+        <label htmlFor="email" className="sr-only">Alamat Email</label>
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
+        </div>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
+          placeholder="Masukkan Alamat Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
       </div>
 
-      <div>
-        <label>Kata Sandi</label>
-        <input type="password" name="password" placeholder="Masukkan Kata Sandi" onChange={handleChange} required disabled={isSubmitting} />
+      {/* Input Password */}
+      <div className="relative">
+        <label htmlFor="password" className="sr-only">Kata Sandi</label>
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
+        </div>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
+          placeholder="Masukkan Kata Sandi"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
       </div>
 
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Memproses...' : 'Masuk'}
-      </button>
+      {/* Opsi Ingat Saya & Lupa Sandi */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <input
+            id="remember-me"
+            name="remember-me"
+            type="checkbox"
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+            Ingat saya
+          </label>
+        </div>
+        <div className="text-sm">
+          <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+            lupa kata sandi?
+          </a>
+        </div>
+      </div>
 
-      <p style={{ color: message.includes('Error') ? 'red' : 'green', textAlign: 'center' }}>
-        {message}
-      </p>
+      {/* Tombol Masuk */}
+      <div>
+        <button
+          type="submit"
+          disabled={loading}
+          className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-semibold rounded-lg text-white ${
+            loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-[#294B69] hover:bg-[#1f3750] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+          } transition duration-150 shadow-md`}
+        >
+          {loading ? (
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span className="ml-2">Memproses...</span>
+            </div>
+          ) : (
+            'Masuk'
+          )}
+        </button>
+      </div>
     </form>
   );
 }
