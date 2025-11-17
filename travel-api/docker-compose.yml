@@ -1,20 +1,18 @@
-version: '3.8'
-
 services:
   php:
     build:
       context: .
       dockerfile: Dockerfile
+      target: php
     volumes:
       - .:/var/www/html
 
   nginx:
     build:
       context: .
-      dockerfile: Dockerfile.nginx
+      dockerfile: Dockerfile
+      target: app
     ports:
       - "3000:80"
     depends_on:
       - php
-    volumes:
-      - .:/var/www/html
