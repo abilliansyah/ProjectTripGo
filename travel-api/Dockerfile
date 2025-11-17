@@ -9,21 +9,21 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy composer first (best practice)
+# Copy composer files only first
 COPY composer.json composer.lock ./
 
-# Install ALL deps (NO --no-dev)
-RUN composer install --optimize-autoloader --no-interaction
+# Install deps WITHOUT running artisan
+RUN composer install --no-scripts --optimize-autoloader --no-interaction
 
 # Copy full project
 COPY . .
 
-# Ensure permissions
+# Permissions for Laravel
 RUN chmod -R 775 storage bootstrap/cache
 
-# Build Laravel caches (optional)
-RUN php artisan config:cache || true
-RUN php artisan route:cache || true
+# Now run artisan commands safely (optional)
+RUN php artisan config:clear || true
+RUN php artisan route:clear || true
 
 ENV PORT=8000
 EXPOSE 8000
