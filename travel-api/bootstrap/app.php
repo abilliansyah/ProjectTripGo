@@ -1,4 +1,5 @@
 <?php
+die('VENDOR EXISTS? ' . (is_dir(__DIR__ . '/../vendor/laravel/framework') ? 'YES' : 'NO'));
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -6,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
