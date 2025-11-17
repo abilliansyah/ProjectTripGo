@@ -1,8 +1,9 @@
 import Navbar from '@/components/Navbar';
 import SearchForm from '@/components/SearchForm';
 import Link from 'next/link';
+import ImageWithFallback from '@/components/ImageWithFallback'; // Mengatasi masalah onError
 
-// Component untuk Footer agar halaman terlihat lengkap
+// Component untuk Footer agar halaman terlihat lengkap (Server Component)
 const Footer = () => (
   <footer className="bg-gray-800 text-white mt-32 pt-16 pb-8">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between gap-8">
@@ -50,7 +51,8 @@ const Footer = () => (
 export default function Home() {
   return (
     <>
-      <Navbar />
+      {/* Navbar diasumsikan adalah Client Component jika memiliki interaktivitas, atau Server Component jika hanya tampilan */}
+      <Navbar /> 
       <main className="min-h-screen">
         {/* Hero Section */}
         <div className="relative pt-12 pb-32 bg-gray-50">
@@ -64,22 +66,18 @@ export default function Home() {
               </p>
             </div>
             
-            {/* Image Placeholder */}
+            {/* Image Placeholder menggunakan ImageWithFallback (Client Component) */}
             <div className="shadow-2xl rounded-xl overflow-hidden max-w-5xl mx-auto">
-              {/* Mengganti gambar placeholder dengan URL yang mirip desain Anda */}
-              <img 
+              <ImageWithFallback
                 src="https://images.unsplash.com/photo-1543793757-1944e8c1e403?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
                 alt="Pemandangan indah" 
                 className="w-full h-80 object-cover"
-                onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = "https://placehold.co/1000x320/007bff/ffffff?text=TripGo+Image";
-                }}
+                fallbackSrc="https://placehold.co/1000x320/007bff/ffffff?text=TripGo+Image"
               />
             </div>
           </div>
           
-          {/* Form Pencarian */}
+          {/* SearchForm diasumsikan adalah Client Component */}
           <SearchForm />
         </div>
         
@@ -96,15 +94,12 @@ export default function Home() {
               </p>
             </div>
             <div className="w-full lg:w-5/12">
-              {/* Gambar Bus Placeholder */}
-              <img 
+              {/* Gambar Bus Placeholder menggunakan ImageWithFallback */}
+              <ImageWithFallback 
                 src="https://placehold.co/400x250/1f2937/ffffff?text=Bus+TripGo"
                 alt="Bus TripGo modern" 
                 className="rounded-xl shadow-lg w-full"
-                onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = "https://placehold.co/400x250/1f2937/ffffff?text=Bus+TripGo";
-                }}
+                fallbackSrc="https://placehold.co/400x250/1f2937/ffffff?text=Bus+TripGo"
               />
             </div>
           </div>
