@@ -2,33 +2,24 @@
 
 namespace Database\Seeders;
 
-// 👇 TAMBAHKAN BARIS INI
-use Illuminate\Support\Facades\Schema;
-
+use App\Models\User;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    use WithoutModelEvents;
+
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        // 1. Nonaktifkan pengecekan foreign key
-        Schema::disableForeignKeyConstraints();
+        // User::factory(10)->create();
 
-        // 2. Panggil semua seeder Anda
-        // Perintah truncate() di dalam seeder ini sekarang aman dijalankan
-        $this->call([
-            CitySeeder::class,
-            FleetSeeder::class,
-            RouteSeeder::class,
-            ScheduleSeeder::class,
-            TripSeeder::class,
-            // (Seeder lain akan ditambahkan di sini)
+        User::factory()->create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
         ]);
-
-        // 3. Aktifkan kembali pengecekan foreign key
-        Schema::enableForeignKeyConstraints();
     }
 }
