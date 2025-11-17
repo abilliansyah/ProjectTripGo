@@ -1,4 +1,4 @@
-@import "tailwindcss";
+/* Hapus baris @import "tailwindcss"; */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,12 +8,14 @@
   --foreground: #171717;
 }
 
-@theme inline {
+/* Bagian @theme inline ini tidak standar dalam CSS/Tailwind dan mungkin diabaikan atau menimbulkan warning,
+   tapi tidak mengganggu fungsi Tailwind. Anda bisa menghapusnya jika tidak yakin. */
+/* @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
+} */
 
 @media (prefers-color-scheme: dark) {
   :root {
