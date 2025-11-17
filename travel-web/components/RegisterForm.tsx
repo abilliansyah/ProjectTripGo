@@ -1,10 +1,10 @@
-'use client'; // <-- DIREKTIF INI DITAMBAHKAN
+'use client';
 
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 // Import ikon dari lucide-react
-import { User, Mail, Phone, Lock, LucideIcon } from 'lucide-react'; 
+import { User, Mail, Phone, Lock, LucideIcon } from 'lucide-react'; // Menambahkan LucideIcon untuk tipe
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -54,8 +54,7 @@ export default function RegisterForm() {
     }
     
     if (!API_BASE_URL) {
-      // Mengubah pesan error menjadi lebih informatif jika berjalan di lingkungan yang tidak memiliki env
-      setError('Error: API Base URL tidak terdefinisi. Pendaftaran tidak dapat diproses.');
+      setError('Error: NEXT_PUBLIC_API_BASE_URL tidak terdefinisi.');
       setLoading(false);
       return;
     }
@@ -77,15 +76,14 @@ export default function RegisterForm() {
       }, 2000);
 
     } catch (err: any) {
-      // Penanganan error
-      const errorMessage = err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi.';
-      setError(errorMessage);
+      // Penanganan error...
+      setError('Pendaftaran gagal. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Komponen pembantu untuk input field
+  // Komponen pembantu untuk input field, sekarang dengan tipe props yang jelas
   const InputField: React.FC<InputFieldProps> = ({ id, label, type = 'text', placeholder, value, onChange, icon: Icon, required = true }) => (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm font-medium text-gray-700">
@@ -126,7 +124,7 @@ export default function RegisterForm() {
         </div>
       )}
 
-      {/* Nama Depan & Belakang - Berdampingan */}
+      {/* Nama Depan & Belakang - Berdampingan (Tidak menggunakan InputField helper karena tidak ada ikon) */}
       <div className="grid grid-cols-2 gap-4">
         {/* Nama Depan */}
         <div className="space-y-1">
