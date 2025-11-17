@@ -1,30 +1,34 @@
-FROM php:8.2-fpm
+# -----------------------------------------
+# PHP-FPM IMAGE
+# -----------------------------------------
+FROM php:8.2-fpm AS php
 
 RUN apt-get update && apt-get install -y \
-    zip unzip git curl libpng-dev libonig-dev libxml2-dev \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
+    git zip unzip curl libpng-dev libonig-dev libxml2-dev libzip-dev \
+    && docker-php-ext-install pdo pdo_mysql zip mbstring exif pcntl bcmath gd
 
+# Install composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# 1. Copy composer info ONLY
-COPY composer.json composer.lock ./
-
-# 2. Install deps WITHOUT artisan
-RUN composer install --no-scripts --optimize-autoloader --no-interaction
-
-# 3. Copy all project files (BUT do NOT overwrite vendor)
 COPY . .
 
-# 4. Permissions
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
 RUN chmod -R 775 storage bootstrap/cache
 
-ENV PORT=8080
-EXPOSE 8080
+# -----------------------------------------
+# NGINX IMAGE
+# -----------------------------------------
+FROM nginx:alpine AS app
 
-# cek vendor
-RUN ls -R /var/www/html/vendor > /vendor_contents.txt || true
+COPY --from=php /var/www/html /var/www/html
 
-CMD cat /vendor_contents.txt && php -S 0.0.0.0:${PORT} -t public
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+WORKDIR /var/www/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
