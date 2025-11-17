@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# File environment Next.js
+.env.local
+.env.*.local
+
+# Folder library JavaScript
+/node_modules/
+
+# Folder build
+/.next/
+/out/
+
+# File lainnya
+.npm
+npm-debug.log*
