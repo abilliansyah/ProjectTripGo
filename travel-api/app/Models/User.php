@@ -20,7 +20,7 @@ class User extends Authenticatable
     protected $fillable = [
         'first_name', // <-- HARUS ADA!
         'last_name',
-        'name',
+        'phone_number',
         'email',
         'password',
     ];
