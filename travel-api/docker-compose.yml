@@ -5,16 +5,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: php
     volumes:
       - .:/var/www/html
 
   nginx:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: app
+      dockerfile: Dockerfile.nginx
     ports:
       - "3000:80"
     depends_on:
       - php
+    volumes:
+      - .:/var/www/html
