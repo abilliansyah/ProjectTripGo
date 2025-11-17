@@ -23,4 +23,8 @@ RUN chmod -R 775 storage bootstrap/cache
 ENV PORT=8080
 EXPOSE 8080
 
-CMD php -S 0.0.0.0:${PORT} -t public
+# cek vendor
+RUN ls -R /var/www/html/vendor > /vendor_contents.txt || true
+
+CMD cat /vendor_contents.txt && php -S 0.0.0.0:${PORT} -t public
+
