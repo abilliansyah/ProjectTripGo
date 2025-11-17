@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/UseAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 // Ambil URL Base API dari .env.local
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;

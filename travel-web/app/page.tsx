@@ -1,57 +1,117 @@
-// app/page.tsx
+import Navbar from '@/components/Navbar';
+import SearchForm from '@/components/SearchForm';
+import Link from 'next/link';
 
-// Tipe data untuk respons dari API Laravel
-interface ApiResponse {
-  message: string;
-}
-
-// Ambil URL Base API dari .env.local
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-async function getData(): Promise<ApiResponse> {
-  // Pastikan variabel lingkungan sudah diatur (lihat langkah 3 sebelumnya)
-  if (!API_BASE_URL) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL is not defined in environment variables");
-  }
-  
-  const endpoint = `${API_BASE_URL}/api/hello`;
-  
-  const res = await fetch(endpoint, {
-    // Force dynamic rendering (optional, tergantung kebutuhan cache Anda)
-    cache: 'no-store', 
-  });
-
-  if (!res.ok) {
-    // Menampilkan error jika fetch gagal
-    throw new Error(`Failed to fetch data from ${endpoint}. Status: ${res.status}`);
-  }
-
-  // Melakukan cast hasil ke tipe ApiResponse
-  return res.json() as Promise<ApiResponse>;
-}
-
-// Default export untuk halaman
-export default async function HomePage() {
-  let data: ApiResponse;
-  
-  try {
-    data = await getData();
-  } catch (error) {
-    // Penanganan error sederhana
-    return (
-      <div style={{ color: 'red', padding: '20px' }}>
-        <h1>Error Loading Data</h1>
-        <p>{error instanceof Error ? error.message : "An unknown error occurred"}</p>
+// Component untuk Footer agar halaman terlihat lengkap
+const Footer = () => (
+  <footer className="bg-gray-800 text-white mt-32 pt-16 pb-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between gap-8">
+      
+      {/* Kolom 1: Logo & Deskripsi */}
+      <div className="w-full md:w-1/4">
+        <h3 className="text-2xl font-bold mb-4">TripGo</h3>
+        <p className="text-gray-400 text-sm">
+          Mulai perjalananmu bersama minibus TripGo yang selalu mendampingi setiap waktu. Kenyamanan penumpang utama kami adalah mendampingi.
+        </p>
       </div>
-    );
-  }
+      
+      {/* Kolom 2 & 3: Info & Kontak */}
+      <div className="flex w-full md:w-1/2 justify-around">
+        <div>
+          <h4 className="text-lg font-semibold mb-4">Informasi</h4>
+          <ul className="space-y-2 text-sm text-gray-400">
+            <li><a href="#" className="hover:text-white">Website</a></li>
+            <li><a href="#" className="hover:text-white">Blog</a></li>
+            <li><a href="#" className="hover:text-white">Karir</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="text-lg font-semibold mb-4">Kontak</h4>
+          <p className="text-sm text-gray-400">+6281-2245-6789</p>
+          <p className="text-sm text-gray-400">kontak@tripgo.com</p>
+        </div>
+      </div>
 
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>Laravel API Response (Next.js TSX)</h1>
-      {/* Akses properti dengan aman */}
-      <p>Pesan dari Backend: <strong>{data.message}</strong></p>
-      <p>Dihubungkan ke: <code>{API_BASE_URL}/api/hello</code></p>
+      {/* Kolom 4: Outlet */}
+      <div className="w-full md:w-1/4">
+        <h4 className="text-lg font-semibold mb-4">Outlet</h4>
+        <p className="text-sm text-gray-400">Jl. Gunung Tupak Domtor No. 50A, Bogor, Cilegon, Banten</p>
+      </div>
     </div>
+    
+    <div className="mt-8 text-center text-gray-500 text-sm">
+      <h5 className="font-semibold mb-2">Ikuti Media Sosial TripGo</h5>
+      {/* Anda bisa menambahkan ikon sosmed di sini */}
+      <p>&copy; {new Date().getFullYear()} TripGo. All rights reserved.</p>
+    </div>
+  </footer>
+);
+
+export default function Home() {
+  return (
+    <>
+      <Navbar />
+      <main className="min-h-screen">
+        {/* Hero Section */}
+        <div className="relative pt-12 pb-32 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl">
+                TripGo
+              </h1>
+              <p className="mt-3 text-xl text-gray-600 max-w-3xl mx-auto">
+                Trip Go adalah platform perjalanan dan transportasi modern yang dirancang untuk menemani setiap perjalanan Anda. Kami menyediakan layanan minibus dengan menghadirkan pengalaman pemesanan yang mudah, aman, dan nyaman. Trip Go melayani rute Cilegon - Serang - Rangkasbitung - Tanahabang.
+              </p>
+            </div>
+            
+            {/* Image Placeholder */}
+            <div className="shadow-2xl rounded-xl overflow-hidden max-w-5xl mx-auto">
+              {/* Mengganti gambar placeholder dengan URL yang mirip desain Anda */}
+              <img 
+                src="https://images.unsplash.com/photo-1543793757-1944e8c1e403?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
+                alt="Pemandangan indah" 
+                className="w-full h-80 object-cover"
+                onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "https://placehold.co/1000x320/007bff/ffffff?text=TripGo+Image";
+                }}
+              />
+            </div>
+          </div>
+          
+          {/* Form Pencarian */}
+          <SearchForm />
+        </div>
+        
+        {/* Section Tentang Kami */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 py-16">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8">Tentang TripGo</h2>
+          <div className="flex flex-wrap items-center gap-10">
+            <div className="w-full lg:w-1/2">
+              <p className="text-gray-600 mb-4">
+                TripGo telah dipercaya oleh banyak penumpang sebagai solusi perjalanan antar kota yang aman dan nyaman. Kami menyediakan berbagai jenis minibus modern dengan fasilitas lengkap seperti AC dingin, kursi ergonomis, charger port, dan hiburan selama perjalanan, memastikan setiap perjalanan terasa menyenangkan. Dengan harga tiket yang terjangkau dan sistem pemesanan yang mudah, TripGo berkomitmen untuk memberikan pengalaman terbaik bagi setiap pelanggan.
+              </p>
+              <p className="text-gray-600 font-semibold">
+                Nikmati perjalanan tanpa khawatir bersama TripGo.
+              </p>
+            </div>
+            <div className="w-full lg:w-5/12">
+              {/* Gambar Bus Placeholder */}
+              <img 
+                src="https://placehold.co/400x250/1f2937/ffffff?text=Bus+TripGo"
+                alt="Bus TripGo modern" 
+                className="rounded-xl shadow-lg w-full"
+                onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "https://placehold.co/400x250/1f2937/ffffff?text=Bus+TripGo";
+                }}
+              />
+            </div>
+          </div>
+        </section>
+        
+      </main>
+      <Footer />
+    </>
   );
 }
