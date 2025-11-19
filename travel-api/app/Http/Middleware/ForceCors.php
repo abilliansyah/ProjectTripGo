@@ -17,21 +17,25 @@ class ForceCors
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Tentukan Origin Vercel Anda
-        $allowedOrigin = 'https://project-trip-go.vercel.app';
+        // Ambil Origin dari request (misalnya, https://project-trip-go.vercel.app)
+        $origin = $request->headers->get('Origin');
         
+        // Atur Allowed Origin. Jika Origin ada, gunakan Origin tersebut. 
+        // Ini WAJIB jika Access-Control-Allow-Credentials: true.
+        // Jika Origin tidak ada, gunakan default Vercel Anda.
+        $allowedOrigin = $origin ?? 'https://project-trip-go.vercel.app';
+
         // Header standar yang dibutuhkan
         $headers = [
             'Access-Control-Allow-Origin'      => $allowedOrigin,
             'Access-Control-Allow-Methods'     => 'POST, GET, OPTIONS, PUT, DELETE',
-            'Access-Control-Allow-Headers'     => 'Content-Type, X-Auth-Token, Origin, Authorization, Accept',
+            // Menambahkan 'X-Requested-With' karena sering dikirim oleh library seperti Axios
+            'Access-Control-Allow-Headers'     => 'Content-Type, X-Auth-Token, Origin, Authorization, Accept, X-Requested-With', 
             'Access-Control-Allow-Credentials' => 'true',
         ];
 
-        // 1. Tangani Preflight OPTIONS Request
-        // Browser akan mengirim OPTIONS request sebelum POST/PUT
+        // 1. Tangani Preflight OPTIONS Request (Hanya mengirim header CORS)
         if ($request->isMethod('OPTIONS')) {
-            // Berikan respons 200 OK dengan semua header CORS
             return response('OK', 200)->withHeaders($headers);
         }
 
