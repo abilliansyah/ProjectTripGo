@@ -45,7 +45,7 @@ export default function LoginForm() {
     try {
       setLoading(true);
 
-      const response = await axios.post(`${API_BASE_URL}/login`, {
+      const response = await axios.post(`${API_BASE_URL}/api/login`, {
         email,
         password,
       });
