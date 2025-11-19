@@ -1,4 +1,4 @@
-"use client"; // <--- INI ADALAH PERBAIKANNYA
+"use client"; 
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { LogOut, Loader2, Menu, X, User, Home, ArrowRight, Search, Plane, Calendar } from 'lucide-react';
@@ -15,11 +15,11 @@ interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  login: () => Promise<void>; // Ganti setIsAuthenticated menjadi login
   logout: () => Promise<void>;
   router: {
     push: (path: string) => void; 
   };
-  setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 interface ImageWithFallbackProps {
@@ -36,7 +36,8 @@ interface NavLinkProps {
 
 // --- STUB / MOCK useAuth untuk Kompilasi ---
 const useAuth = (): AuthContextType => {
-  const [isAuthenticated, setIsAuthenticated] = useState(true); 
+  // **PERBAIKAN:** Default state diubah menjadi FALSE (belum login)
+  const [isAuthenticated, setIsAuthenticated] = useState(false); 
   const [isLoading, setIsLoading] = useState(false);
   const user: UserProfile | null = isAuthenticated ? { 
     first_name: 'Budi', 
@@ -44,10 +45,20 @@ const useAuth = (): AuthContextType => {
     role: 'user' 
   } : null;
 
-  // Stub fungsi-fungsi:
+  // Simulasi Login
+  const login = async () => {
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 500)); 
+    setIsAuthenticated(true);
+    setIsLoading(false);
+    console.log("Login successful (Mocked)");
+  };
+
+  // Simulasi Logout
   const logout = async () => {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500)); 
+    // **PERBAIKAN:** Menggunakan setIsAuthenticated(false) untuk memperbarui status
     setIsAuthenticated(false);
     setIsLoading(false);
     console.log("Logout successful (Mocked)");
@@ -59,7 +70,7 @@ const useAuth = (): AuthContextType => {
     }
   };
 
-  return { user, isLoading, logout, isAuthenticated, router, setIsAuthenticated };
+  return { user, isLoading, login, logout, isAuthenticated, router };
 };
 // --- END STUB / MOCK useAuth ---
 
@@ -97,7 +108,8 @@ const NAV_ITEMS = [
 ];
 
 const Navbar: React.FC = () => {
-  const { user, isLoading, logout, isAuthenticated, router, setIsAuthenticated } = useAuth();
+  // **PERBAIKAN:** Menggunakan 'login' yang sudah didefinisikan di useAuth
+  const { user, isLoading, login, logout, isAuthenticated, router } = useAuth();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -108,7 +120,7 @@ const Navbar: React.FC = () => {
   const handleLogout = async () => {
     setIsDropdownOpen(false); 
     await logout();
-    router.push('/login'); 
+    router.push('/'); // Tetap di halaman utama setelah logout
   };
   // --------------------
 
@@ -132,7 +144,7 @@ const Navbar: React.FC = () => {
         );
     }
 
-    // 2. Authenticated State
+    // 2. Authenticated State (Logged In)
     if (isAuthenticated && user) {
         const displayName = user.first_name || 'Pengguna';
         
@@ -185,10 +197,10 @@ const Navbar: React.FC = () => {
         );
     }
 
-    // 3. Unauthenticated State
+    // 3. Unauthenticated State (Not Logged In)
     return (
         <button 
-            onClick={() => setIsAuthenticated(true)} // Simulasi login
+            onClick={login} // **PERBAIKAN:** Panggil fungsi login yang mengubah state ke true
             className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium 
                        shadow-md hover:bg-[#12385e] transition duration-150 flex items-center space-x-2"
         >
@@ -281,10 +293,9 @@ const SearchForm: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => { 
         e.preventDefault();
         console.log(`Mencari tiket: ${origin} -> ${destination} pada ${date}`);
-        // Menggunakan window.alert() dalam komponen Client diperbolehkan untuk demo
-        // Namun, disarankan menggunakan modal kustom di lingkungan produksi
         if (typeof window !== 'undefined') {
-            window.alert(`Simulasi Pencarian: ${origin} ke ${destination} pada ${date}.`);
+            // Gunakan console.log atau custom modal, bukan alert
+            console.log(`Simulasi Pencarian: ${origin} ke ${destination} pada ${date}.`);
         }
     };
 
