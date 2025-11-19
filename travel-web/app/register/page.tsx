@@ -9,8 +9,6 @@ export default function TripGoRegisterPage() {
     // Background dengan gradien yang baru
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-amber-100 font-sans">
       
-      {/* Gunakan Navbar global */}
-      <Navbar />
 
       {/* --- DIAGNOSTIC BANNER: Jika Tailwind berfungsi, kotak ini akan berwarna merah cerah --- */}
       <div className="bg-red-600 text-white text-center py-1 font-bold">
