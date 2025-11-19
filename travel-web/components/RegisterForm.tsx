@@ -101,9 +101,8 @@ export default function RegisterForm() {
     }
 
     try {
-      // Pastikan nama key di sini sesuai dengan yang diharapkan oleh validasi Laravel:
-      // first_name, last_name, email, phone_number, password, password_confirmation
-      const response = await axios.post(`${API_BASE_URL}/register`, {
+      // PERBAIKAN: Menggunakan /api/register untuk mengatasi Error 404
+      const response = await axios.post(`${API_BASE_URL}/api/register`, {
         first_name: firstName,
         last_name: lastName,
         email: email,
@@ -122,7 +121,10 @@ export default function RegisterForm() {
       console.error('Register Error:', err);
       const errorMessage = err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi. (Cek konsol untuk detail)';
       
-      if (err.response && err.response.status === 422) {
+      if (err.response && err.response.status === 404) {
+          // Pesan lebih spesifik untuk 404
+          setError(`Error 404: Rute API tidak ditemukan. Pastikan URL API Anda benar dan rute '/api/register' sudah didefinisikan di Laravel (saat ini memanggil: ${API_BASE_URL}/api/register)`);
+      } else if (err.response && err.response.status === 422) {
           const validationErrors = err.response.data.errors;
           let detailedError = errorMessage + '\n\n';
           for (const key in validationErrors) {
