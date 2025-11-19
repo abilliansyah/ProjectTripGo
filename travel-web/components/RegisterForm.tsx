@@ -38,7 +38,7 @@ export default function RegisterForm() {
     push: (path: string) => console.log(`Redirecting to ${path}...`) 
   };
   
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.example.com';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://projecttripgo-production.up.railway.app';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
