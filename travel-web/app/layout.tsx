@@ -1,22 +1,15 @@
-// app/layout.tsx
-
-import { AuthProvider } from '@/context/AuthContext';
 import "./globals.css";
+import type { Metadata } from "next";
 
+export const metadata: Metadata = {
+  title: "TripGo",
+  description: "Travel Web",
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        {/* Bungkus seluruh aplikasi dengan AuthProvider */}
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
