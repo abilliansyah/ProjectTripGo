@@ -1,3 +1,5 @@
+"use client"; // <--- INI ADALAH PERBAIKANNYA
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { LogOut, Loader2, Menu, X, User, Home, ArrowRight, Search, Plane, Calendar } from 'lucide-react';
 
@@ -15,7 +17,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   logout: () => Promise<void>;
   router: {
-    push: (path: string) => void; // Menambahkan tipe string untuk parameter 'path'
+    push: (path: string) => void; 
   };
   setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -28,13 +30,13 @@ interface ImageWithFallbackProps {
 }
 
 interface NavLinkProps {
-  href: string; // Menambahkan tipe string untuk 'href'
-  name: string; // Menambahkan tipe string untuk 'name'
+  href: string; 
+  name: string; 
 }
 
 // --- STUB / MOCK useAuth untuk Kompilasi ---
 const useAuth = (): AuthContextType => {
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Default: Sudah Login
+  const [isAuthenticated, setIsAuthenticated] = useState(true); 
   const [isLoading, setIsLoading] = useState(false);
   const user: UserProfile | null = isAuthenticated ? { 
     first_name: 'Budi', 
@@ -45,14 +47,14 @@ const useAuth = (): AuthContextType => {
   // Stub fungsi-fungsi:
   const logout = async () => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulasi delay
+    await new Promise(resolve => setTimeout(resolve, 500)); 
     setIsAuthenticated(false);
     setIsLoading(false);
     console.log("Logout successful (Mocked)");
   };
 
   const router = {
-    push: (path: string) => { // Tipe di sini diperbaiki
+    push: (path: string) => { 
       console.log(`Simulating navigation to: ${path}`);
     }
   };
@@ -63,7 +65,6 @@ const useAuth = (): AuthContextType => {
 
 // --- COMPONENT: ImageWithFallback ---
 const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({ src, alt, className, fallbackSrc }) => {
-    // Tipe props sudah ditentukan oleh Interface ImageWithFallbackProps
     const [imgSrc, setImgSrc] = useState(src);
 
     // Reset imgSrc jika src berubah
@@ -111,7 +112,7 @@ const Navbar: React.FC = () => {
   };
   // --------------------
 
-  const NavLink: React.FC<NavLinkProps> = ({ href, name }) => ( // Tipe props diperbaiki
+  const NavLink: React.FC<NavLinkProps> = ({ href, name }) => ( 
     <a 
       href={href} 
       className="text-gray-700 hover:text-[#15406A] px-3 py-2 rounded-lg text-sm font-medium transition duration-150"
@@ -277,10 +278,14 @@ const SearchForm: React.FC = () => {
     const [destination, setDestination] = useState('Tanahabang');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
-    const handleSubmit = (e: React.FormEvent) => { // Tipe event diperbaiki
+    const handleSubmit = (e: React.FormEvent) => { 
         e.preventDefault();
         console.log(`Mencari tiket: ${origin} -> ${destination} pada ${date}`);
-        alert(`Simulasi Pencarian: ${origin} ke ${destination} pada ${date}.`);
+        // Menggunakan window.alert() dalam komponen Client diperbolehkan untuk demo
+        // Namun, disarankan menggunakan modal kustom di lingkungan produksi
+        if (typeof window !== 'undefined') {
+            window.alert(`Simulasi Pencarian: ${origin} ke ${destination} pada ${date}.`);
+        }
     };
 
     return (
