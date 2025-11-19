@@ -32,13 +32,9 @@ export default function RegisterForm() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // --- MOCK ROUTER UNTUK PREVIEW ---
-  // Di project asli, hapus baris mock ini dan gunakan: const router = useRouter();
-  const router = { 
-    push: (path: string) => console.log(`Redirecting to ${path}...`) 
-  };
-  
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://projecttripgo-production.up.railway.app';
+  const router = useRouter();
+  // Pastikan NEXT_PUBLIC_API_BASE_URL disetel di environment Vercel Anda
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,24 +48,26 @@ export default function RegisterForm() {
       return;
     }
 
+    if (password.length < 8) {
+      setError('Kata sandi minimal harus 8 karakter.');
+      setLoading(false);
+      return;
+    }
+
     if (password !== passwordConfirmation) {
       setError('Kata sandi dan konfirmasi kata sandi tidak cocok.');
       setLoading(false);
       return;
     }
     
-    // Validasi sederhana untuk URL API di preview
     if (!API_BASE_URL) {
-       // Diabaikan di preview agar tidak error
+      setError('Konfigurasi Error: API URL belum diatur.');
+      setLoading(false);
+      return;
     }
 
     try {
-      // Simulasi request di preview jika axios gagal (karena tidak ada backend real)
-      // Di production, baris axios.post di bawah ini akan berjalan normal
-      await new Promise(resolve => setTimeout(resolve, 1500)); 
-      
-      /* // UNCOMMENT KODE INI DI PROJECT ASLI:
-      await axios.post(`${API_BASE_URL}/register`, {
+      const response = await axios.post(`${API_BASE_URL}/register`, {
         first_name: firstName,
         last_name: lastName,
         email: email,
@@ -77,7 +75,6 @@ export default function RegisterForm() {
         password: password,
         password_confirmation: passwordConfirmation,
       });
-      */
 
       setSuccess('Pendaftaran berhasil! Anda akan dialihkan ke halaman Masuk.');
       
@@ -87,13 +84,27 @@ export default function RegisterForm() {
 
     } catch (err: any) {
       console.error('Register Error:', err);
-      setError(err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi.');
+      // Menampilkan pesan error spesifik dari Backend jika ada
+      const errorMessage = err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi. (Cek konsol untuk detail)';
+      
+      // Jika error 422 (validasi Laravel), tampilkan error yang lebih detail
+      if (err.response && err.response.status === 422) {
+          const validationErrors = err.response.data.errors;
+          let detailedError = errorMessage + '\n\n';
+          for (const key in validationErrors) {
+              detailedError += validationErrors[key].join(', ') + '\n';
+          }
+          setError(detailedError);
+      } else {
+          setError(errorMessage);
+      }
+      
     } finally {
       setLoading(false);
     }
   };
 
-  // Komponen InputField
+  // Komponen InputField (Didefinisikan di luar atau di dalam komponen utama)
   const InputField: React.FC<InputFieldProps> = ({ 
     id, 
     label, 
@@ -119,6 +130,7 @@ export default function RegisterForm() {
           name={id}
           type={type}
           required={required}
+          // Hapus penggunaan pl-10 jika Icon tidak ada, agar padding tetap konsisten
           className={`appearance-none block w-full ${Icon ? 'pl-10 pr-3' : 'px-3'} py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#213b55]/20 focus:border-[#213b55] sm:text-sm transition-all shadow-sm`}
           placeholder={placeholder}
           value={value}
@@ -132,7 +144,7 @@ export default function RegisterForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg relative text-sm animate-in fade-in slide-in-from-top-2" role="alert">
+        <div className="bg-red-50 border border-red-200 text-red-700 whitespace-pre-wrap px-4 py-3 rounded-lg relative text-sm animate-in fade-in slide-in-from-top-2" role="alert">
           {error}
         </div>
       )}
@@ -143,33 +155,26 @@ export default function RegisterForm() {
         </div>
       )}
 
+      {/* Nama Depan & Belakang - SEKARANG MENGGUNAKAN INPUTFIELD */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label htmlFor="first_name" className="block text-sm font-semibold text-gray-700">Nama Depan</label>
-          <input
-            id="first_name"
-            name="first_name"
-            type="text"
-            required
-            className="appearance-none block w-full px-3 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#213b55]/20 focus:border-[#213b55] sm:text-sm transition-all shadow-sm"
-            placeholder="Nama Depan Anda"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="last_name" className="block text-sm font-semibold text-gray-700">Nama Belakang</label>
-          <input
-            id="last_name"
-            name="last_name"
-            type="text"
-            required
-            className="appearance-none block w-full px-3 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#213b55]/20 focus:border-[#213b55] sm:text-sm transition-all shadow-sm"
-            placeholder="Nama Belakang Anda"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-          />
-        </div>
+        <InputField 
+          id="first_name" 
+          label="Nama Depan" 
+          type="text" 
+          placeholder="Nama Depan Anda" 
+          value={firstName} 
+          onChange={(e) => setFirstName(e.target.value)} 
+          icon={User} // Tambahkan ikon
+        />
+        <InputField 
+          id="last_name" 
+          label="Nama Belakang" 
+          type="text" 
+          placeholder="Nama Belakang Anda" 
+          value={lastName} 
+          onChange={(e) => setLastName(e.target.value)} 
+          icon={User} // Tambahkan ikon
+        />
       </div>
 
       <InputField 
@@ -182,6 +187,7 @@ export default function RegisterForm() {
         icon={Mail}
       />
       
+      {/* Menggunakan ID 'phone' di frontend yang sesuai dengan data yang dikirim ke backend */}
       <InputField 
         id="phone" 
         label="Nomor Telepon" 
@@ -196,7 +202,7 @@ export default function RegisterForm() {
         id="password" 
         label="Kata Sandi" 
         type="password" 
-        placeholder="Masukkan Kata Sandi" 
+        placeholder="Masukkan Kata Sandi (Min. 8 karakter)" 
         value={password} 
         onChange={(e) => setPassword(e.target.value)} 
         icon={Lock}
