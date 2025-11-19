@@ -23,17 +23,19 @@ class AuthController extends Controller
         $validatedData = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
+            // Perbaikan: phone_number diubah menjadi nullable jika tidak wajib diisi
             'email' => 'required|string|email|max:255|unique:users',
-            'phone_number' => 'required|string|unique:users',
+            'phone_number' => 'nullable|string|max:255|unique:users', 
             'password' => 'required|string|min:8|confirmed', // 'confirmed' membutuhkan field password_confirmation
         ]);
 
         // 2. Buat user baru di database (KRITIS: Password di-hash)
         $user = User::create([
+            // Menggunakan $validatedData untuk semua field
             'first_name' => $validatedData['first_name'],
-            'last_name' => $validatedData['last_name'],
+            'last_name' => $validatedData['last_name'] ?? null, // Handle nullable
             'email' => $validatedData['email'],
-            'phone_number' => $validatedData['phone_number'],
+            'phone_number' => $validatedData['phone_number'] ?? null, // Handle nullable
             'password' => Hash::make($validatedData['password']), // WAJIB Hash::make()
             'role' => 'user', // Set default role
         ]);
@@ -68,23 +70,22 @@ class AuthController extends Controller
             // Jika Gagal, kembalikan 401 Unauthorized
             return response()->json([
                 'message' => 'Kredensial tidak valid (Email atau Password salah).',
-            ], 401); 
+            ], 401); // 401 Unauthorized
         }
 
-        // 3. Jika Berhasil, ambil user
+        // 3. Jika berhasil, ambil user yang sudah terotentikasi
         $user = Auth::user();
 
-        // 4. Hapus token lama user (opsional, untuk keamanan)
-        // Ini memastikan hanya satu token yang aktif per user/session.
+        // 4. Hapus token lama user (opsional)
         $user->tokens()->delete(); 
         
         // 5. Buat token baru
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // 6. Kembalikan response sukses (sesuai dengan yang diharapkan frontend)
+        // 6. Kembalikan response yang sesuai dengan frontend yang sudah kita perbaiki
         return response()->json([
             'user' => $user,
-            'access_token' => $token, // Kunci yang digunakan di frontend Next.js Anda
+            'access_token' => $token, // Kunci yang digunakan frontend
             'token_type' => 'Bearer',
         ]);
     }

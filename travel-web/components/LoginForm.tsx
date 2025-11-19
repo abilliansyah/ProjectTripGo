@@ -6,11 +6,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Mail, Lock } from "lucide-react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
 export default function LoginForm() {
   const router = useRouter();
-  const { login } = useAuth();
+  // Asumsi hook useAuth ada dan memiliki fungsi 'login'
+  const { login } = useAuth(); 
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,8 +24,9 @@ export default function LoginForm() {
       setError("Format email tidak valid.");
       return false;
     }
-    if (password.length < 6) {
-      setError("Password minimal 6 karakter.");
+    // Menggunakan min 8 karakter agar sesuai dengan validasi backend Laravel
+    if (password.length < 8) {
+      setError("Kata Sandi minimal 8 karakter.");
       return false;
     }
     return true;
@@ -37,25 +37,64 @@ export default function LoginForm() {
     setError("");
 
     if (!validateForm()) return;
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    
     if (!API_BASE_URL) {
-      setError("NEXT_PUBLIC_API_BASE_URL belum diset.");
+      setError("NEXT_PUBLIC_API_BASE_URL belum diset. Cek file .env Anda.");
       return;
     }
 
     try {
       setLoading(true);
 
+      // --- PANGGILAN API ---
+      // Endpoint yang digunakan: https://projecttripgo-production.up.railway.app/api/login
       const response = await axios.post(`${API_BASE_URL}/api/login`, {
         email,
         password,
       });
 
-      const { token, user } = response.data.data;
-      login(token, user);
+      // --- START: Blok Sukses dengan Penanganan Error Internal ---
+      // Ini WAJIB untuk menangkap error runtime JS yang terjadi setelah API call sukses (Status 200 OK)
+      try {
+        // Backend Anda mengembalikan { user, access_token, token_type } langsung di response.data
+        const { access_token, user } = response.data; 
+        
+        // Memanggil hook login untuk menyimpan token/user
+        login(access_token, user); 
 
-      router.push("/dashboard");
-    } catch (error) {
-      setError("Email atau password salah.");
+        // Redirect hanya jika login dan penyimpanan data berhasil
+        router.push("/dashboard");
+        
+      } catch (runtimeError: any) {
+        // Jika terjadi error saat memproses respons (misal, di hook useAuth)
+        console.error("Login Runtime Error (After API Success):", runtimeError);
+        setError("Login berhasil, tetapi terjadi error saat memproses data pengguna. Silakan coba bersihkan cache/cookies atau periksa hook useAuth.");
+      }
+      // --- END: Blok Sukses dengan Penanganan Error Internal ---
+
+
+    } catch (err: any) {
+      // --- Blok Kegagalan API (401, 422, 500) ---
+      console.error("Login API Error:", err);
+      
+      let errorMessage = "Email atau Kata Sandi salah.";
+
+      if (err.response) {
+          if (err.response.status === 401) {
+              // Menangani response 401 dari backend
+              errorMessage = err.response.data?.message || errorMessage;
+          } else if (err.response.status === 422) {
+              errorMessage = "Terdapat kesalahan validasi data.";
+          } else {
+              errorMessage = `Terjadi kesalahan pada server (Status: ${err.response.status}). Mohon coba lagi.`;
+          }
+      } else {
+          // Kesalahan Jaringan
+          errorMessage = "Gagal terhubung ke server. Cek koneksi internet Anda (Error API/CORS).";
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -64,7 +103,7 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6 animate-fadeIn">
 
-      {/* Error */}
+      {/* Error / Pesan Notifikasi */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm animate-shake">
           {error}
@@ -82,8 +121,8 @@ export default function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm 
-                       focus:ring-2 focus:ring-blue-300 focus:border-blue-500 
-                       transition-all duration-200"
+                        focus:ring-2 focus:ring-blue-300 focus:border-blue-500 
+                        transition-all duration-200"
           />
         </div>
       </div>
@@ -99,8 +138,8 @@ export default function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm
-                       focus:ring-2 focus:ring-blue-300 focus:border-blue-500 
-                       transition-all duration-200"
+                        focus:ring-2 focus:ring-blue-300 focus:border-blue-500 
+                        transition-all duration-200"
           />
         </div>
       </div>
