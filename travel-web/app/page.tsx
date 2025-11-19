@@ -52,7 +52,6 @@ export default function Home() {
   return (
     <>
       {/* Navbar diasumsikan adalah Client Component jika memiliki interaktivitas, atau Server Component jika hanya tampilan */}
-      <Navbar /> 
       <main className="min-h-screen">
         {/* Hero Section */}
         <div className="relative pt-12 pb-32 bg-gray-50">

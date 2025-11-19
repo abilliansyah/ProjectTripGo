@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id">
       <body className="min-h-screen bg-gradient-to-br from-white to-sky-50 text-slate-900">
         <Navbar />
-        <main>{children}</main>
+        {children}
       </body>
     </html>
   );
