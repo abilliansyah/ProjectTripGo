@@ -20,6 +20,41 @@ interface InputFieldProps {
 }
 // --- Akhir Interface ---
 
+const InputField: React.FC<InputFieldProps> = ({ 
+  id, 
+  label, 
+  type = 'text', 
+  placeholder, 
+  value, 
+  onChange, 
+  icon: Icon, 
+  required = true 
+}) => (
+  <div className="space-y-1.5">
+    <label htmlFor={id} className="block text-sm font-semibold text-gray-700">
+      {label}
+    </label>
+    <div className="relative group">
+      {Icon && ( 
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Icon className="h-5 w-5 text-gray-400 group-focus-within:text-[#213b55] transition-colors" aria-hidden="true" />
+        </div>
+      )}
+      <input
+        id={id}
+        name={id}
+        type={type}
+        required={required}
+        className={`appearance-none block w-full ${Icon ? 'pl-10 pr-3' : 'px-3'} py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#213b55]/20 focus:border-[#213b55] sm:text-sm transition-all shadow-sm`}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+      />
+    </div>
+  </div>
+);
+// --- AKHIR KOMPONEN INPUTFIELD ---
+
 export default function RegisterForm() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -33,7 +68,6 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   
   const router = useRouter();
-  // Pastikan NEXT_PUBLIC_API_BASE_URL disetel di environment Vercel Anda
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,6 +101,8 @@ export default function RegisterForm() {
     }
 
     try {
+      // Pastikan nama key di sini sesuai dengan yang diharapkan oleh validasi Laravel:
+      // first_name, last_name, email, phone_number, password, password_confirmation
       const response = await axios.post(`${API_BASE_URL}/register`, {
         first_name: firstName,
         last_name: lastName,
@@ -84,17 +120,15 @@ export default function RegisterForm() {
 
     } catch (err: any) {
       console.error('Register Error:', err);
-      // Menampilkan pesan error spesifik dari Backend jika ada
       const errorMessage = err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi. (Cek konsol untuk detail)';
       
-      // Jika error 422 (validasi Laravel), tampilkan error yang lebih detail
       if (err.response && err.response.status === 422) {
           const validationErrors = err.response.data.errors;
           let detailedError = errorMessage + '\n\n';
           for (const key in validationErrors) {
-              detailedError += validationErrors[key].join(', ') + '\n';
+              detailedError += `• ${validationErrors[key].join(', ')}\n`;
           }
-          setError(detailedError);
+          setError(detailedError.trim());
       } else {
           setError(errorMessage);
       }
@@ -103,42 +137,6 @@ export default function RegisterForm() {
       setLoading(false);
     }
   };
-
-  // Komponen InputField (Didefinisikan di luar atau di dalam komponen utama)
-  const InputField: React.FC<InputFieldProps> = ({ 
-    id, 
-    label, 
-    type = 'text', 
-    placeholder, 
-    value, 
-    onChange, 
-    icon: Icon, 
-    required = true 
-  }) => (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-semibold text-gray-700">
-        {label}
-      </label>
-      <div className="relative group">
-        {Icon && ( 
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Icon className="h-5 w-5 text-gray-400 group-focus-within:text-[#213b55] transition-colors" aria-hidden="true" />
-          </div>
-        )}
-        <input
-          id={id}
-          name={id}
-          type={type}
-          required={required}
-          // Hapus penggunaan pl-10 jika Icon tidak ada, agar padding tetap konsisten
-          className={`appearance-none block w-full ${Icon ? 'pl-10 pr-3' : 'px-3'} py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#213b55]/20 focus:border-[#213b55] sm:text-sm transition-all shadow-sm`}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-        />
-      </div>
-    </div>
-  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -155,7 +153,7 @@ export default function RegisterForm() {
         </div>
       )}
 
-      {/* Nama Depan & Belakang - SEKARANG MENGGUNAKAN INPUTFIELD */}
+      {/* Nama Depan & Belakang */}
       <div className="grid grid-cols-2 gap-4">
         <InputField 
           id="first_name" 
@@ -164,7 +162,7 @@ export default function RegisterForm() {
           placeholder="Nama Depan Anda" 
           value={firstName} 
           onChange={(e) => setFirstName(e.target.value)} 
-          icon={User} // Tambahkan ikon
+          icon={User}
         />
         <InputField 
           id="last_name" 
@@ -173,7 +171,7 @@ export default function RegisterForm() {
           placeholder="Nama Belakang Anda" 
           value={lastName} 
           onChange={(e) => setLastName(e.target.value)} 
-          icon={User} // Tambahkan ikon
+          icon={User}
         />
       </div>
 
@@ -187,7 +185,6 @@ export default function RegisterForm() {
         icon={Mail}
       />
       
-      {/* Menggunakan ID 'phone' di frontend yang sesuai dengan data yang dikirim ke backend */}
       <InputField 
         id="phone" 
         label="Nomor Telepon" 
