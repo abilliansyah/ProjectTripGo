@@ -17,9 +17,10 @@ class Kernel extends HttpKernel
         // \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
         
-        // >>> PERBAIKAN: PINDAHKAN HandleCors KE SINI (Posisi ke-2) <<<
-        \Illuminate\Http\Middleware\HandleCors::class, 
-        
+        // >>> PERBAIKAN KRITIS: Middleware CORS Kustom Ditempatkan di sini <<<
+        // Hapus HandleCors bawaan, ganti dengan ForceCors
+        \App\Http\Middleware\ForceCors::class, 
+
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
