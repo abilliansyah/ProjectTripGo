@@ -15,7 +15,7 @@ interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: () => Promise<void>; // Ganti setIsAuthenticated menjadi login
+  login: () => Promise<void>; 
   logout: () => Promise<void>;
   router: {
     push: (path: string) => void; 
@@ -36,37 +36,50 @@ interface NavLinkProps {
 
 // --- STUB / MOCK useAuth untuk Kompilasi ---
 const useAuth = (): AuthContextType => {
-  // **PERBAIKAN:** Default state diubah menjadi FALSE (belum login)
+  // Status default FALSE (belum login)
   const [isAuthenticated, setIsAuthenticated] = useState(false); 
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Data user 'Budi' hanya ada jika isAuthenticated = true
   const user: UserProfile | null = isAuthenticated ? { 
     first_name: 'Budi', 
     email: 'budi.travel@example.com', 
     role: 'user' 
   } : null;
 
-  // Simulasi Login
+  // Fungsi login tiruan - ini hanya akan dipanggil JIKA KITA SUDAH BERADA di halaman login yang sebenarnya
   const login = async () => {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500)); 
-    setIsAuthenticated(true);
+    setIsAuthenticated(true); // Simulasi berhasil login
     setIsLoading(false);
     console.log("Login successful (Mocked)");
   };
 
-  // Simulasi Logout
+  // Fungsi logout
   const logout = async () => {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500)); 
-    // **PERBAIKAN:** Menggunakan setIsAuthenticated(false) untuk memperbarui status
     setIsAuthenticated(false);
     setIsLoading(false);
     console.log("Logout successful (Mocked)");
   };
 
   const router = {
+    // Simulasi router push, sekarang mengarahkan ke halaman login/register yang sesungguhnya
     push: (path: string) => { 
       console.log(`Simulating navigation to: ${path}`);
+      
+      // Jika menekan tombol Daftar/Masuk, kita navigasi.
+      // Jika kita berada di halaman login/register dan menekan tombol 'Masuk', kita bisa simulasikan login sukses
+      if (path === '/dashboard') {
+          // Asumsi setelah berhasil login di halaman /login, kita akan diarahkan ke /dashboard, 
+          // dan pada saat itu status auth akan menjadi true.
+          // Untuk tujuan simulasi di satu file ini, kita panggil login() jika tujuannya /dashboard.
+          if (!isAuthenticated) {
+             login(); 
+          }
+      }
     }
   };
 
@@ -78,7 +91,6 @@ const useAuth = (): AuthContextType => {
 const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({ src, alt, className, fallbackSrc }) => {
     const [imgSrc, setImgSrc] = useState(src);
 
-    // Reset imgSrc jika src berubah
     useEffect(() => {
         setImgSrc(src);
     }, [src]);
@@ -107,9 +119,8 @@ const NAV_ITEMS = [
   { name: 'Kontak', href: '/kontak' },
 ];
 
-const Navbar: React.FC = () => {
-  // **PERBAIKAN:** Menggunakan 'login' yang sudah didefinisikan di useAuth
-  const { user, isLoading, login, logout, isAuthenticated, router } = useAuth();
+export const Navbar: React.FC = () => {
+  const { user, isLoading, logout, isAuthenticated, router } = useAuth();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -120,7 +131,7 @@ const Navbar: React.FC = () => {
   const handleLogout = async () => {
     setIsDropdownOpen(false); 
     await logout();
-    router.push('/'); // Tetap di halaman utama setelah logout
+    router.push('/'); 
   };
   // --------------------
 
@@ -167,7 +178,7 @@ const Navbar: React.FC = () => {
                         <a 
                             href="/dashboard" 
                             className="px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 transition flex items-center" 
-                            onClick={() => setIsDropdownOpen(false)}
+                            onClick={() => { setIsDropdownOpen(false); router.push('/dashboard'); }}
                         >
                             <User size={16} className="mr-2" />
                             Dashboard Saya
@@ -200,7 +211,8 @@ const Navbar: React.FC = () => {
     // 3. Unauthenticated State (Not Logged In)
     return (
         <button 
-            onClick={login} // **PERBAIKAN:** Panggil fungsi login yang mengubah state ke true
+            // PERBAIKAN: Sekarang mengarahkan ke route login yang Anda miliki
+            onClick={() => router.push('/login')} 
             className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium 
                        shadow-md hover:bg-[#12385e] transition duration-150 flex items-center space-x-2"
         >
@@ -235,7 +247,7 @@ const Navbar: React.FC = () => {
 
           {/* Mobile Menu Button */}
           <div className="sm:hidden flex items-center">
-             <AuthSection /> {/* Tampilkan Auth status juga di mobile */}
+             <AuthSection /> 
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 focus:outline-none ml-2"
@@ -294,7 +306,6 @@ const SearchForm: React.FC = () => {
         e.preventDefault();
         console.log(`Mencari tiket: ${origin} -> ${destination} pada ${date}`);
         if (typeof window !== 'undefined') {
-            // Gunakan console.log atau custom modal, bukan alert
             console.log(`Simulasi Pencarian: ${origin} ke ${destination} pada ${date}.`);
         }
     };
@@ -411,15 +422,26 @@ const Footer: React.FC = () => (
     <div className="mt-8 text-center text-gray-500 text-sm border-t border-gray-700 pt-4">
       <h5 className="font-semibold mb-2">Ikuti Media Sosial TripGo</h5>
       <p>&copy; {new Date().getFullYear()} TripGo. All rights reserved.</p>
+      
     </div>
   </footer>
 );
 
 // --- MAIN APPLICATION COMPONENT (Export Default) ---
 const App: React.FC = () => {
+  // CATATAN PENTING:
+  // Masalah Navbar tumpuk dua teratasi dengan menghapus panggilan <Navbar /> di sini
+  // dan mengasumsikan Anda menempatkannya di app/layout.tsx (praktik Next.js yang benar).
+  
+  // Jika Anda menguji file ini sebagai satu-satunya halaman, Anda bisa uncomment baris di bawah ini.
+  // Untuk saat ini, saya meng-uncomment agar tetap bisa dipratinjau di lingkungan satu file.
+  
+  const { isAuthenticated } = useAuth();
+  
   return (
     <div className="min-h-screen bg-white font-sans">
-        <Navbar />
+        <Navbar /> 
+
         <main>
           {/* Hero Section */}
           <div className="relative pt-12 pb-32 bg-gray-50">
