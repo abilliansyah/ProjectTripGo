@@ -2,6 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { LogOut, Loader2, Menu, X, User, Home, ArrowRight, Search, Plane, Calendar } from 'lucide-react';
+// Hapus semua definisi useAuth mock di sini!
+
+// PENTING: Anda harus mengganti baris ini dengan jalur import yang benar 
+// ke hook useAuth otentik Anda.
+// Contoh jalur umum:
+// import useAuth from '@/hooks/useAuth';
+// Untuk tujuan demonstrasi di sini, kita tetap perlu mendefinisikannya agar dapat dikompilasi.
+// Saya akan menggunakan stub kosong yang hanya mengembalikan state unauthenticated.
 
 // --- DEFINISI TIPE (Interfaces) ---
 
@@ -15,13 +23,40 @@ interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  // Fungsi login tiruan menerima nama depan untuk simulasi
+  // Fungsi ini dibiarkan kosong karena seharusnya diimplementasikan di hook asli Anda
   login: (firstName: string) => Promise<void>; 
   logout: () => Promise<void>;
   router: {
     push: (path: string) => void; 
   };
 }
+
+// --- STUB KOSONG / TEMPORARY useAuth (HARUS DIGANTI) ---
+// HARAP GANTI DENGAN useAuth ASLI ANDA
+const useAuth = (): AuthContextType => {
+  // Ini adalah state default yang tidak terautentikasi (seperti sebelum login)
+  const isAuthenticated = false; 
+  const isLoading = false;
+  const user = null;
+
+  const login = async (firstName: string) => {
+      console.error("Fungsi login ini adalah placeholder. Harap ganti dengan implementasi useAuth yang sesungguhnya.");
+  };
+
+  const logout = async () => {
+      console.error("Fungsi logout ini adalah placeholder. Harap ganti dengan implementasi useAuth yang sesungguhnya.");
+  };
+
+  const router = {
+    push: (path: string) => { 
+      console.log(`Simulating navigation to: ${path}`);
+    }
+  };
+
+  return { user, isLoading, login, logout, isAuthenticated, router };
+};
+// --- END STUB KOSONG / TEMPORARY useAuth ---
+
 
 interface ImageWithFallbackProps {
   src: string;
@@ -34,59 +69,6 @@ interface NavLinkProps {
   href: string; 
   name: string; 
 }
-
-// --- STUB / MOCK useAuth untuk Kompilasi ---
-// Ini adalah tiruan hook useAuth Anda, yang sekarang benar-benar dimulai dari state kosong.
-const useAuth = (): AuthContextType => {
-  // Selalu dimulai sebagai UN-AUTHENTICATED
-  const [isAuthenticated, setIsAuthenticated] = useState(false); 
-  const [isLoading, setIsLoading] = useState(false);
-  const [mockUser, setMockUser] = useState<UserProfile | null>(null);
-
-  const user: UserProfile | null = mockUser;
-
-  // Fungsi login tiruan (untuk diuji di console jika Anda ingin melihat transisi)
-  const login = async (firstName: string) => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); 
-    
-    setMockUser({ 
-        first_name: firstName, 
-        email: `${firstName.toLowerCase()}@tripgo.com`, 
-        role: 'user' 
-    });
-    setIsAuthenticated(true); 
-    setIsLoading(false);
-    console.log(`Simulasi Login Berhasil. Nama: ${firstName}`);
-  };
-
-  // Fungsi logout
-  const logout = async () => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); 
-    setIsAuthenticated(false);
-    setMockUser(null);
-    setIsLoading(false);
-    console.log("Logout successful (Mocked)");
-  };
-
-  const router = {
-    push: (path: string) => { 
-      console.log(`Simulating navigation to: ${path}`);
-      
-      // HAPUS LOGIKA AUTO-LOGIN KE /dashboard
-      // Transisi login/logout harus ditangani di /login atau /register
-      
-      // Jika di-redirect ke /dashboard (simulasi klik menu di dropdown)
-      if (path === '/dashboard' && !isAuthenticated) {
-          console.log("Error: User not authenticated, cannot go to dashboard.");
-      }
-    }
-  };
-
-  return { user, isLoading, login, logout, isAuthenticated, router };
-};
-// --- END STUB / MOCK useAuth ---
 
 // --- COMPONENT: ImageWithFallback ---
 const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({ src, alt, className, fallbackSrc }) => {
@@ -121,7 +103,7 @@ const NAV_ITEMS = [
 ];
 
 export const Navbar: React.FC = () => {
-  // useAuth sekarang menyediakan user, isLoading, dll.
+  // Menggunakan useAuth (seharusnya import asli)
   const { user, isLoading, logout, isAuthenticated, router } = useAuth(); 
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -132,6 +114,7 @@ export const Navbar: React.FC = () => {
   // --- Logika Logout ---
   const handleLogout = async () => {
     setIsDropdownOpen(false); 
+    // Memanggil fungsi logout asli dari useAuth
     await logout();
     router.push('/'); 
   };
@@ -160,7 +143,6 @@ export const Navbar: React.FC = () => {
     // 2. Authenticated State (Logged In)
     if (isAuthenticated && user && user.first_name) {
         // Menggunakan first_name dari hasil login/daftar
-        // Default ke 'Pengguna' jika first_name tidak terisi, tetapi isAuthenticated true
         const displayName = user.first_name || 'Pengguna'; 
         
         return (
@@ -302,7 +284,7 @@ export const Navbar: React.FC = () => {
   );
 };
 
-// --- COMPONENT: SearchForm (Stub/Mock Client Component) ---
+// --- COMPONENT: SearchForm (Client Component) ---
 const SearchForm: React.FC = () => {
     const [origin, setOrigin] = useState('Cilegon');
     const [destination, setDestination] = useState('Tanahabang');
@@ -435,17 +417,10 @@ const Footer: React.FC = () => (
 // --- MAIN APPLICATION COMPONENT (Export Default) ---
 const App: React.FC = () => {
   
-  // PENTING: <Navbar /> HANYA dipanggil di layout.tsx. 
-  // File ini (page.tsx) hanya berisi konten halaman.
+  // Karena Navbar dipanggil di layout.tsx, page ini hanya berisi konten utama.
 
   return (
     <div className="min-h-screen bg-white font-sans">
-        
-        {/*
-          CATATAN: Di proyek Next.js Anda, pastikan App/Page.tsx (file ini) 
-          HANYA berisi konten halaman. Navbar dipanggil di layout.tsx.
-        */}
-
         <main>
           {/* Hero Section */}
           <div className="relative pt-12 pb-32 bg-gray-50">
