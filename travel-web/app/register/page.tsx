@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar'; // Gunakan Navbar yang sudah ada
 import Link from 'next/link';
 
 // Komponen Halaman Pendaftaran - Server Component
-export function TripGoRegisterPage() {
+export default function TripGoRegisterPage() {
   return (
     // Background Gradient Hangat (Beige/White) tanpa Navbar
     <div className="min-h-screen bg-gradient-to-br from-[#fdfbf7] via-white to-[#fef8e8] font-sans text-slate-800 flex items-center justify-center">
