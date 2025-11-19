@@ -6,7 +6,6 @@ import { LogOut, Loader2, Menu, X, User, Home, ArrowRight, Search, Plane, Calend
 // --- DEFINISI TIPE (Interfaces) ---
 
 interface UserProfile {
-  // first_name sekarang bisa null/undefined jika belum login
   first_name: string | null; 
   email: string | null;
   role: 'user' | 'admin' | null;
@@ -16,7 +15,8 @@ interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (firstName: string) => Promise<void>; // Ditambahkan argumen untuk simulasi
+  // Fungsi login tiruan menerima nama depan untuk simulasi
+  login: (firstName: string) => Promise<void>; 
   logout: () => Promise<void>;
   router: {
     push: (path: string) => void; 
@@ -36,22 +36,20 @@ interface NavLinkProps {
 }
 
 // --- STUB / MOCK useAuth untuk Kompilasi ---
-// Ini berfungsi sebagai pengganti hook useAuth yang akan Anda miliki di proyek Next.js nyata Anda
+// Ini adalah tiruan hook useAuth Anda, yang sekarang benar-benar dimulai dari state kosong.
 const useAuth = (): AuthContextType => {
+  // Selalu dimulai sebagai UN-AUTHENTICATED
   const [isAuthenticated, setIsAuthenticated] = useState(false); 
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Data user tiruan diinisialisasi sebagai null, tanpa 'Budi'
   const [mockUser, setMockUser] = useState<UserProfile | null>(null);
 
   const user: UserProfile | null = mockUser;
 
-  // Fungsi login tiruan
-  const login = async (firstName: string = 'Pengguna') => {
+  // Fungsi login tiruan (untuk diuji di console jika Anda ingin melihat transisi)
+  const login = async (firstName: string) => {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500)); 
     
-    // Mengatur nama depan dari argumen yang diterima (simulasi dari input form)
     setMockUser({ 
         first_name: firstName, 
         email: `${firstName.toLowerCase()}@tripgo.com`, 
@@ -76,10 +74,12 @@ const useAuth = (): AuthContextType => {
     push: (path: string) => { 
       console.log(`Simulating navigation to: ${path}`);
       
-      // Untuk menguji transisi "Logged In" di Preview ini
-      // Jika di-redirect ke /dashboard, kita simulasikan login dengan nama default
+      // HAPUS LOGIKA AUTO-LOGIN KE /dashboard
+      // Transisi login/logout harus ditangani di /login atau /register
+      
+      // Jika di-redirect ke /dashboard (simulasi klik menu di dropdown)
       if (path === '/dashboard' && !isAuthenticated) {
-          login('Penumpang'); // Contoh nama default
+          console.log("Error: User not authenticated, cannot go to dashboard.");
       }
     }
   };
@@ -122,12 +122,11 @@ const NAV_ITEMS = [
 
 export const Navbar: React.FC = () => {
   // useAuth sekarang menyediakan user, isLoading, dll.
-  const { user, isLoading, logout, isAuthenticated, router, login } = useAuth(); 
+  const { user, isLoading, logout, isAuthenticated, router } = useAuth(); 
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
-  // Mengambil peran, default ke null jika user null
   const isAdmin = user?.role === 'admin';
 
   // --- Logika Logout ---
@@ -161,6 +160,7 @@ export const Navbar: React.FC = () => {
     // 2. Authenticated State (Logged In)
     if (isAuthenticated && user && user.first_name) {
         // Menggunakan first_name dari hasil login/daftar
+        // Default ke 'Pengguna' jika first_name tidak terisi, tetapi isAuthenticated true
         const displayName = user.first_name || 'Pengguna'; 
         
         return (
@@ -170,7 +170,8 @@ export const Navbar: React.FC = () => {
                     className="flex items-center space-x-2 bg-[#15406A] text-white px-3 py-2 rounded-lg text-sm font-medium shadow-md hover:bg-[#12385e] transition duration-150"
                 >
                     <User size={16} />
-                    <span className="truncate max-w-[100px] hidden sm:block">{displayName}</span>
+                    {/* INI YANG MENAMPILKAN NAMA PENGGUNA */}
+                    <span className="truncate max-w-[100px] hidden sm:block">Halo, {displayName}</span>
                 </button>
 
                 {isDropdownOpen && (
@@ -215,7 +216,7 @@ export const Navbar: React.FC = () => {
     // 3. Unauthenticated State (Not Logged In)
     return (
         <button 
-            // Mengarahkan ke route login yang Anda miliki (yang benar di Next.js)
+            // Mengarahkan ke route login yang Anda miliki
             onClick={() => router.push('/login')} 
             className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium 
                        shadow-md hover:bg-[#12385e] transition duration-150 flex items-center space-x-2"
@@ -434,9 +435,8 @@ const Footer: React.FC = () => (
 // --- MAIN APPLICATION COMPONENT (Export Default) ---
 const App: React.FC = () => {
   
-  // PENTING: Karena <Navbar /> sudah di app/layout.tsx, 
-  // kita TIDAK PERLU memanggilnya di sini untuk menghindari duplikasi (tumpuk).
-  // Saya hanya menyisakan konten utama halaman.
+  // PENTING: <Navbar /> HANYA dipanggil di layout.tsx. 
+  // File ini (page.tsx) hanya berisi konten halaman.
 
   return (
     <div className="min-h-screen bg-white font-sans">
