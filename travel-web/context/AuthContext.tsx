@@ -1,7 +1,6 @@
-// context/AuthContext.tsx
 "use client";
 
-import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useCallback, useContext } from 'react';
 import axios from 'axios';
 
 // Definisikan Tipe Data User
@@ -34,26 +33,28 @@ const defaultContextValue: AuthContextType = {
 
 export const AuthContext = createContext<AuthContextType>(defaultContextValue);
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+// Pastikan API_BASE_URL sudah didefinisikan di .env.local atau .env
+// Jika Anda tidak menggunakan Next.js/process.env, ganti dengan string URL langsung.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 // --- Kunci Local Storage yang Diperlukan ---
-const TOKEN_KEY = 'authToken'; // Kunci yang Anda gunakan
-const USER_DATA_KEY = 'userProfileData'; // Kunci BARU untuk menyimpan objek user
+const TOKEN_KEY = 'authToken'; 
+const USER_DATA_KEY = 'userProfileData'; 
 // ------------------------------------------
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
+  // Status loading harus true di awal untuk menunggu proses rehidrasi selesai
   const [isLoading, setIsLoading] = useState(true);
 
   // Fungsi untuk validasi token ke API /api/user.
-  // Ini memastikan token yang tersimpan di browser masih valid.
   const validateAndFetchUser = useCallback(async (token: string) => {
+    // console.log('AuthContext: Validating token via API /api/user...');
     try {
-      // console.log('AuthContext: Validating token via API /api/user...');
       const response = await axios.get<User>(`${API_BASE_URL}/api/user`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -72,7 +73,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem(USER_DATA_KEY);
       setUser(null);
     } finally {
-      setIsLoading(false); // Proses inisialisasi selesai, UI siap
+      // PENTING: Set isLoading ke false HANYA setelah API validasi selesai
+      // Ini menyelesaikan masalah loading tak henti.
+      setIsLoading(false); 
     }
   }, []);
 
@@ -90,11 +93,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         try {
             const userDataFromCache = JSON.parse(storedUser) as User;
             
-            // --- FIX UTAMA: Set state user segera dari cache ---
+            // Rehidrasi Cepat (mengatasi masalah tampilan/CLS)
             setUser(userDataFromCache);
             
-            // Lanjutkan validasi token di latar belakang. 
-            // isLoading akan tetap 'true' sampai API validasi selesai.
+            // Lanjutkan validasi token di latar belakang.
+            // isLoading tetap 'true' sampai API validasi selesai.
             validateAndFetchUser(token); 
 
         } catch (e) {
@@ -102,28 +105,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             localStorage.removeItem(TOKEN_KEY);
             localStorage.removeItem(USER_DATA_KEY);
             setUser(null);
-            setIsLoading(false);
+            setIsLoading(false); // Selesai loading karena sesi bermasalah
         }
 
     } else {
       setIsLoading(false); // Selesai loading jika tidak ada token/data
     }
-  }, [validateAndFetchUser]); // Menambahkan validateAndFetchUser ke dependencies
+  }, [validateAndFetchUser]); 
 
   // Fungsi Login: Simpan token dan user data ke localStorage
   const login = (token: string, userData: User) => {
-    // Simpan kedua data: token dan objek user
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
     
     setUser(userData);
-    // Pastikan status loading di-reset segera setelah login berhasil
     setIsLoading(false); 
   };
 
   // Fungsi Logout
   const logout = () => {
-    // Panggil endpoint logout di Laravel (opsional, tapi disarankan)
+    // Panggil endpoint logout di API (opsional, tapi disarankan)
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
         axios.post(`${API_BASE_URL}/api/logout`, {}, {
@@ -133,7 +134,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     // Hapus data lokal dan reset state
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_DATA_KEY); // Hapus data user dari cache
+    localStorage.removeItem(USER_DATA_KEY);
     setUser(null);
   };
 
@@ -152,4 +153,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };
