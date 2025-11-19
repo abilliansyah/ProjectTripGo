@@ -1,131 +1,112 @@
+// components/Navbar.tsx
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useAuth } from "@/hooks/useAuth";
-import { useRouter } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import React, { useContext } from 'react';
+// Asumsi 'next/link' dan 'next/navigation' tersedia
+import Link from 'next/link'; 
+import { useRouter } from 'next/navigation';
+// Asumsi path alias ini tersedia di project Next.js Anda
+import { AuthContext } from '@/context/AuthContext'; 
+import { LogOut, Loader2 } from 'lucide-react';
 
 export default function Navbar() {
-  const { isAuthenticated, user, logout } = useAuth();
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const context = useContext(AuthContext);
+  
+  // Jika context belum tersedia atau null (misal, di luar AuthProvider), tampilkan null/kosong.
+  if (!context) {
+    // Jika komponen ini berada di root layout, Anda mungkin ingin mengembalikan 
+    // tampilan default sederhana tanpa data user.
+    return (
+        <nav className="bg-white border-b shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+                <Link href="/" className="text-xl font-bold text-[#15406A]">TripGo</Link>
+                <Link href="/login">
+                    <button className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Daftar / Masuk
+                    </button>
+                </Link>
+            </div>
+        </nav>
+    );
+  }
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/");
+  const { user, isLoading, logout } = context;
+  const router = useRouter();
+  
+  const handleLogout = () => {
+    // Panggil fungsi logout dari context
+    logout();
+    router.push('/login'); // Arahkan ke halaman login setelah logout
   };
 
+  // Tampilkan loading spinner jika isLoading true (Fast Rehydration)
+  if (isLoading) {
+    return (
+      <nav className="bg-white border-b shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-end items-center">
+          <Loader2 className="animate-spin text-gray-500" size={24} />
+        </div>
+      </nav>
+    );
+  }
+
   return (
-    <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-40">
+    <nav className="bg-white border-b shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Left: Logo */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center gap-3">
-              <Image
-                src="@/public/image/logo-tripgo.png"   // <-- sesuaikan path: /public/image/logo-tripgo.png
-                alt="TripGo"
-                width={140}
-                height={40}
-                priority
-              />
-            </Link>
+        <div className="flex justify-between h-16 items-center">
+          
+          {/* Logo */}
+          <Link href="/" className="flex-shrink-0">
+            <h1 className="text-xl font-bold text-[#15406A]">TripGo</h1>
+          </Link>
+          
+          {/* Nav Links */}
+          <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <Link href="/" className="text-gray-900 hover:text-[#15406A] px-3 py-2 text-sm font-medium transition duration-150">Beranda</Link>
+            <Link href="/reservasi" className="text-gray-500 hover:text-[#15406A] px-3 py-2 text-sm font-medium transition duration-150">Reservasi</Link>
+            <Link href="/pembayaran" className="text-gray-500 hover:text-[#15406A] px-3 py-2 text-sm font-medium transition duration-150">Cara Pembayaran</Link>
+            <Link href="/kontak" className="text-gray-500 hover:text-[#15406A] px-3 py-2 text-sm font-medium transition duration-150">Kontak</Link>
+            {/* Tampilkan link Dashboard jika user ada */}
+            {user && (
+                <Link href="/dashboard" className="text-green-600 hover:text-green-800 px-3 py-2 text-sm font-medium transition duration-150">
+                    Dashboard
+                </Link>
+            )}
           </div>
 
-          {/* Center: desktop nav links */}
-          <nav className="hidden md:flex md:items-center md:space-x-6">
-            <Link href="/" className="text-sm font-medium text-gray-700 hover:text-blue-600">
-              Beranda
-            </Link>
-            <Link href="/reservasi" className="text-sm font-medium text-gray-700 hover:text-blue-600">
-              Reservasi
-            </Link>
-            <Link href="/cara-pembayaran" className="text-sm font-medium text-gray-700 hover:text-blue-600">
-              Cara Pembayaran
-            </Link>
-            <Link href="/kontak" className="text-sm font-medium text-gray-700 hover:text-blue-600">
-              Kontak
-            </Link>
-          </nav>
-
-          {/* Right: auth buttons */}
-          <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <div className="hidden sm:flex items-center gap-4">
-                <Link href="/dashboard" className="text-sm font-medium text-gray-700 hover:text-blue-600">
-                  Hi, {<p>{user?.first_name} {user?.last_name}</p>}
-                </Link>
+          {/* Auth Button (Kanan Atas) */}
+          <div className="flex items-center">
+            {user ? (
+              // Tampilan jika user SUDAH LOGIN
+              <div className="flex items-center space-x-4">
+                <span className="text-sm font-medium text-gray-700 hidden md:block">
+                  Halo, {user.first_name || 'Pengguna'}!
+                </span>
                 <button
                   onClick={handleLogout}
-                  className="px-3 py-1.5 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition"
+                  className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg 
+                             text-sm font-medium shadow-md hover:bg-red-700 transition duration-150"
+                  aria-label="Logout"
                 >
-                  Logout
+                  <LogOut size={16} />
+                  <span>Keluar</span>
                 </button>
               </div>
             ) : (
-              <div className="hidden sm:flex">
-                <Link
-                  href="/login"
-                  className="px-4 py-2 bg-[#15406A] text-white rounded-lg text-sm font-medium hover:bg-[#12385e] transition-shadow shadow"
+              // Tampilan jika user BELUM LOGIN
+              <Link href="/login">
+                <button
+                  className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium 
+                             shadow-md hover:bg-[#12385e] transition duration-150"
                 >
                   Daftar / Masuk
-                </Link>
-              </div>
+                </button>
+              </Link>
             )}
-
-            {/* Mobile menu button */}
-            <button
-              className="md:hidden p-2 rounded-md hover:bg-gray-100"
-              aria-label="Toggle menu"
-              onClick={() => setOpen((v) => !v)}
-            >
-              {open ? <X size={20} /> : <Menu size={20} />}
-            </button>
           </div>
+
         </div>
       </div>
-
-      {/* Mobile menu panel */}
-      {open && (
-        <div className="md:hidden border-t border-gray-100 bg-white/95">
-          <div className="px-4 pt-4 pb-6 space-y-3">
-            <Link href="/" className="block text-gray-700 font-medium py-2">
-              Beranda
-            </Link>
-            <Link href="/reservasi" className="block text-gray-700 font-medium py-2">
-              Reservasi
-            </Link>
-            <Link href="/cara-pembayaran" className="block text-gray-700 font-medium py-2">
-              Cara Pembayaran
-            </Link>
-            <Link href="/kontak" className="block text-gray-700 font-medium py-2">
-              Kontak
-            </Link>
-
-            <div className="pt-2 border-t border-gray-100">
-              {isAuthenticated ? (
-                <>
-                  <Link href="/dashboard" className="block py-2 text-gray-700">
-                    Hi, {user?.first_name || "User"}
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full mt-2 px-4 py-2 bg-red-600 text-white rounded-md"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <Link href="/login" className="block mt-2 px-4 py-2 bg-[#15406A] text-white rounded-md text-center">
-                  Daftar / Masuk
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </header>
+    </nav>
   );
 }
