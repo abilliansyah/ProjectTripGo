@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 // PERBAIKAN: Mengganti './components/Navbar' menjadi '../components/Navbar'
-import Navbar from '../components/Navbar'; 
+import Navbar from '../components/NavbarApp'; 
 // PERBAIKAN: Mengganti './context/AuthContext' menjadi '../context/AuthContext'
 import { AuthProvider } from '../context/AuthContext'; 
 
