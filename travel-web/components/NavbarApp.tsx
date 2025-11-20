@@ -15,14 +15,7 @@ interface NavLinkProps {
   onClick: () => void;
 }
 
-// --- Data Dummy (Untuk Mendemonstrasikan Tampilan Terautentikasi) ---
-// Dalam aplikasi nyata, data ini akan berasal dari React Context / Redux / Zustand.
-const DUMMY_USER_PROFILE = {
-    first_name: "Budi",
-    email: "budi.s@mail.com",
-    role: 'user', // Bisa 'user' atau 'admin'
-};
-
+// --- Data Navigasi ---
 const NAV_ITEMS: NavItem[] = [
   { name: 'Beranda', href: '/' },
   { name: 'Reservasi', href: '/reservasi' },
@@ -41,39 +34,50 @@ const NavLink: FC<NavLinkProps> = ({ href, name, onClick }) => (
   </a>
 );
 
-// Komponen utama Navbar
+// --- Komponen Utama Navbar ---
 const NavbarApp: FC = () => {
-  // STATE LOKAL UNTUK DEMONSTRASI:
-  // Dalam aplikasi nyata, 'isAuthenticated' dan 'user' akan diambil dari global state management.
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<typeof DUMMY_USER_PROFILE | null>(null);
-
+  // Hanya menyimpan state untuk interaksi UI seperti menu mobile dan dropdown.
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false); 
   
-  const isAdmin: boolean = user?.role === 'admin';
-
-  // --- Placeholder Logika (untuk Simulasi Navigasi / Toggle State) ---
-  const handleAuthAction = (action: 'login' | 'logout') => {
-    if (action === 'login') {
-        // Dalam dunia nyata: Ini akan menjadi navigasi ke router.push('/login')
-        setIsAuthenticated(true);
-        setUser(DUMMY_USER_PROFILE);
-    } else {
-        // Dalam dunia nyata: Ini akan memanggil logout() dari Auth Context
-        setIsAuthenticated(false);
-        setUser(null);
-        setIsDropdownOpen(false);
-    }
-  };
-  // -------------------------------------------------------------------
+  // NOTE PENTING: Untuk menjalankan aplikasi nyata, Anda HARUS mengambil
+  // status 'isAuthenticated', 'user', dan fungsi 'logout' dari React Context (atau Redux/Zustand)
+  // yang terhubung ke database/Firebase Anda.
+  
+  // Karena ini adalah komponen presentational murni, kita akan menampilkan
+  // tampilan Logged Out (sebagai link) dan memberikan contoh tampilan Logged In (dicomment).
 
   const AuthSection: FC = () => {
-    // 1. Authenticated State (Sudah Login)
-    if (isAuthenticated && user) {
-      const displayName: string = user.first_name || 'Pengguna';
-      
-      return (
+
+    // ===================================================================
+    // TAMPILAN DEFAULT (LOGGED OUT / BELUM MASUK)
+    // ===================================================================
+    return (
+      <a
+        // Dalam aplikasi nyata, ini adalah link yang diarahkan oleh router Anda
+        href="/login" 
+        className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium 
+                   shadow-md hover:bg-[#12385e] transition duration-150 flex items-center space-x-2"
+      >
+        <span>Daftar / Masuk</span>
+        <ArrowRight size={16} />
+      </a>
+    );
+
+
+    // ===================================================================
+    // CONTOH TAMPILAN (LOGGED IN / SUDAH MASUK) - Hapus /* dan */ untuk mengaktifkan
+    // Ganti nilai 'DUMMY_USER' dengan data dari Auth Context Anda.
+    // ===================================================================
+    /*
+    const DUMMY_USER = {
+        first_name: "John",
+        role: "user"
+    };
+    const displayName: string = DUMMY_USER.first_name;
+    const isAdmin: boolean = DUMMY_USER.role === 'admin';
+    
+    return (
         <div className="relative">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -110,8 +114,8 @@ const NavbarApp: FC = () => {
               )}
 
               <button
-                // Tombol ini sekarang hanya memanggil fungsi placeholder
-                onClick={() => handleAuthAction('logout')} 
+                // PENTING: Ganti ini dengan fungsi logout yang sebenarnya dari Auth Context Anda
+                onClick={() => console.log("Fungsi Logout Dipanggil")} 
                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center border-t mt-1 transition"
               >
                 <LogOut size={16} className="mr-2" />
@@ -120,37 +124,21 @@ const NavbarApp: FC = () => {
             </div>
           )}
         </div>
-      );
-    }
-
-    // 2. Unauthenticated State (Belum Login)
-    // PENTING: Tombol ini sekarang adalah LINK/BUTTON yang MENGARAHKAN
-    return (
-      <a
-        // Dalam aplikasi nyata, ini adalah link ke halaman login Anda (e.g., /auth/login)
-        href="/login" 
-        onClick={() => {
-            // Placeholder: Hanya untuk demonstrasi transisi UI
-            handleAuthAction('login'); 
-        }}
-        className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium 
-                   shadow-md hover:bg-[#12385e] transition duration-150 flex items-center space-x-2"
-      >
-        <span>Daftar / Masuk</span>
-        <ArrowRight size={16} />
-      </a>
     );
+    */
+    // ===================================================================
   };
 
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="font-sans">
       <nav className="bg-white sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             
             {/* Logo */}
-            <a href="/" className="flex-shrink-0">
+            <a href="/" className="flex-shrink-0 flex items-center">
+                <Plane size={24} className="text-[#15406A] mr-2" />
               <h1 className="text-xl font-extrabold text-[#15406A] tracking-tight">TripGo</h1>
             </a>
             
@@ -199,55 +187,14 @@ const NavbarApp: FC = () => {
               </a>
               ))}
               
-              {/* Tampilkan link Dashboard di Mobile Menu */}
-              {isAuthenticated && (
-                  <a 
-                    href="/dashboard" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-md text-base font-medium text-green-600 hover:text-green-800 hover:bg-green-50"
-                  >
-                      Dashboard Saya
-                  </a>
-              )}
-
+              {/* NOTE: Tampilkan link Dashboard HANYA jika isAuthenticated (harus dihubungkan ke context) */}
+              {/* <a href="/dashboard" ...> Dashboard Saya </a> */}
             </div>
           </div>
         )}
       </nav>
       
-      {/* Konten Utama Aplikasi */}
-      <main className="p-8 max-w-7xl mx-auto">
-          <div className="bg-white p-6 sm:p-10 rounded-xl shadow-lg border border-gray-100">
-             <h2 className="text-3xl font-bold text-[#15406A] mb-4 flex items-center">
-                <Plane size={28} className="mr-3" />
-                Selamat Datang di TripGo
-             </h2>
-             <p className="text-gray-600 mb-8">
-                Ini adalah tampilan halaman utama. Navigasi telah disiapkan.
-                Tombol **Daftar / Masuk** di kanan atas sudah diubah agar mengarahkan (atau meniru navigasi) ke halaman otentikasi.
-                Saat Anda mengkliknya, tampilan akan berubah menjadi **Logged In**.
-             </p>
-
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-5 border border-dashed border-gray-300 rounded-lg bg-indigo-50/50">
-                <div className="md:col-span-3 text-center">
-                    <p className="text-lg font-semibold text-indigo-700">Pencarian Penerbangan</p>
-                    <p className="text-sm text-indigo-500">Formulir pencarian tiket akan ditempatkan di sini.</p>
-                </div>
-             </div>
-
-             <div className="mt-12 pt-6 border-t border-gray-200">
-                <p className="font-semibold text-gray-700">Status Tampilan Saat Ini (Mode Demonstrasi):</p>
-                <p className="text-gray-500 text-sm">
-                    Status: <span className={`font-medium ${isAuthenticated ? 'text-green-600' : 'text-red-600'}`}>
-                              {isAuthenticated ? `Telah Masuk sebagai ${user?.first_name} (${user?.role})` : 'Belum Masuk'}
-                           </span>
-                </p>
-                <p className="text-xs text-gray-400 mt-2">
-                    *Tampilan status ini hanya untuk demonstrasi transisi UI Navbar. Dalam aplikasi nyata, Anda akan menggunakan Auth Context untuk menentukan status `isAuthenticated` dan data `user`.*
-                </p>
-             </div>
-          </div>
-      </main>
+      {/* PENTING: Tidak ada konten lain di luar komponen Navbar ini. */}
     </div>
   );
 }
