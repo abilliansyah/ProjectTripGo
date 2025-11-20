@@ -1,7 +1,7 @@
-"use client"; // <--- INI ADALAH PERBAIKAN UTAMA UNTUK MENGATASI ERROR "Client Component"
+"use client";
 
 import React, { FC, useState, useEffect, useCallback } from 'react';
-import { LogOut, Loader2, Menu, X, User, Home, ArrowRight, Mail, Lock, AlertTriangle } from 'lucide-react';
+import { LogOut, Loader2, Menu, X, User, Home, ArrowRight, Mail, Lock, AlertTriangle, Plane, MapPin, Calendar } from 'lucide-react';
 
 // Import Firebase (Membutuhkan 'firebase' terinstall di proyek Anda)
 import { initializeApp, FirebaseApp } from 'firebase/app';
@@ -582,7 +582,7 @@ const NavbarApp: FC = () => {
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[#15406A] hover:bg-gray-50"
                 >
                   {item.name}
-                </a>
+              </a>
               ))}
               
               {/* Tampilkan link Dashboard di Mobile Menu */}
@@ -601,26 +601,51 @@ const NavbarApp: FC = () => {
         )}
       </nav>
       
+      {/* Konten Utama Aplikasi (Bukan Simulasi) */}
       <main className="p-8 max-w-7xl mx-auto">
           <div className="bg-white p-6 sm:p-10 rounded-xl shadow-lg border border-gray-100">
-             <h2 className="text-3xl font-bold text-[#15406A] mb-4">Simulasi Aplikasi TripGo</h2>
-             <p className="text-gray-600 mb-6">
-                Ini adalah contoh implementasi Navbar dengan otentikasi (login/register) menggunakan Firebase dan Firestore. 
-                Coba tombol "Daftar / Masuk" untuk membuka modal otentikasi.
+             {/* Konten utama yang diperbaiki */}
+             <h2 className="text-3xl font-bold text-[#15406A] mb-4 flex items-center">
+                <Plane size={28} className="mr-3" />
+                Layanan Reservasi Perjalanan Anda
+             </h2>
+             <p className="text-gray-600 mb-8">
+                Di sini akan ditampilkan konten utama, seperti formulir pencarian tiket, penawaran spesial, atau destinasi populer. Silakan gunakan tombol **Daftar / Masuk** di kanan atas untuk mengelola akun Anda dan mengakses fitur reservasi.
              </p>
-             <div className="mt-8 p-4 bg-gray-50 rounded-lg text-sm">
-                <p className="font-semibold text-gray-700">Status Autentikasi Saat Ini:</p>
-                <p className="text-gray-500">
-                    User Email/ID: <span className="break-all">{user ? (user.email || 'N/A') : (firebaseUser?.uid || 'Belum Terautentikasi')}</span>
+
+             {/* Contoh Search Widget Placeholder */}
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-5 border border-dashed border-gray-300 rounded-lg bg-indigo-50/50">
+                <div className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm">
+                    <MapPin size={20} className="text-[#15406A]" />
+                    <input type="text" placeholder="Asal Keberangkatan" className="w-full focus:outline-none" />
+                </div>
+                <div className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm">
+                    <MapPin size={20} className="text-[#15406A]" />
+                    <input type="text" placeholder="Destinasi Tujuan" className="w-full focus:outline-none" />
+                </div>
+                <div className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm">
+                    <Calendar size={20} className="text-[#15406A]" />
+                    <input type="date" className="w-full focus:outline-none" />
+                </div>
+                <button className="col-span-1 md:col-span-3 bg-indigo-500 text-white font-semibold py-3 rounded-lg hover:bg-indigo-600 transition">
+                    Cari Tiket Sekarang
+                </button>
+             </div>
+
+
+             <div className="mt-12 pt-6 border-t border-gray-200">
+                <p className="font-semibold text-gray-700">Status Akun Terkini (Debug Info):</p>
+                <p className="text-gray-500 text-sm">
+                    Email: <span className="break-all font-mono">{user ? (user.email || 'N/A') : (firebaseUser?.uid || 'Belum Terautentikasi')}</span>
                 </p>
-                <p className="text-gray-500">
+                <p className="text-gray-500 text-sm">
                     Status: <span className={`font-medium ${isAuthenticated ? 'text-green-600' : 'text-red-600'}`}>
                               {isAuthenticated ? 'Telah Masuk (Authenticated)' : 'Belum Masuk'}
                            </span>
                 </p>
                 {/* Tampilkan UID pengguna anonymous, ini penting untuk debugging di Canvas */}
                 {firebaseUser && firebaseUser.isAnonymous && (
-                    <p className="text-xs text-gray-400 mt-2 break-all">Anda login sebagai Anonymous (UID: {firebaseUser.uid}). Silakan Daftar/Masuk untuk menyimpan data.</p>
+                    <p className="text-xs text-gray-400 mt-2 break-all">Anda login sebagai Anonymous. UID: {firebaseUser.uid}. Silakan Daftar/Masuk untuk menyimpan data.</p>
                 )}
              </div>
           </div>
