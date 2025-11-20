@@ -1,405 +1,28 @@
 "use client";
 
-import React, { FC, useState, useEffect, useCallback } from 'react';
-import { LogOut, Loader2, Menu, X, User, Home, ArrowRight, Mail, Lock, AlertTriangle, Plane, MapPin, Calendar } from 'lucide-react';
+import React, { FC, useState } from 'react';
+import { LogOut, Menu, X, User, Home, ArrowRight, Plane } from 'lucide-react';
 
-// Import Firebase (Membutuhkan 'firebase' terinstall di proyek Anda)
-import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, User as FirebaseAuthUser, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getFirestore, Firestore, doc, setDoc, onSnapshot, DocumentSnapshot, DocumentData } from 'firebase/firestore';
-
-// --- Global Variable Access (MANDATORY for Canvas environment) ---
-declare const __app_id: string;
-declare const __firebase_config: string;
-declare const __initial_auth_token: string | undefined;
-
-// --- Definisi Tipe (Interfaces) untuk TypeScript ---
-interface UserProfile {
-  first_name: string;
-  email: string;
-  role: 'user' | 'admin';
-}
-
+// --- Definisi Tipe (Interfaces) ---
 interface NavItem {
   name: string;
   href: string;
 }
 
-interface AuthHook {
-  user: UserProfile | null;
-  firebaseUser: FirebaseAuthUser | null; 
-  isLoading: boolean;
-  logout: () => Promise<void>;
-  isAuthenticated: boolean;
-  isAuthReady: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string) => Promise<void>;
-  error: string | null;
-  resetError: () => void;
+interface NavLinkProps {
+  href: string;
+  name: string;
+  onClick: () => void;
 }
 
-// Global instances for Firebase services
-let firebaseApp: FirebaseApp | null = null;
-let db: Firestore | null = null;
-let auth: Auth | null = null;
-
-// Helper function to handle Firestore path based on app_id
-const getUserProfilePath = (userId: string) => {
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-  // Path for private user data: /artifacts/{appId}/users/{userId}/userProfile/profile
-  return doc(db as Firestore, `artifacts/${appId}/users/${userId}/userProfile`, 'profile');
+// --- Data Dummy (Untuk Mendemonstrasikan Tampilan Terautentikasi) ---
+// Dalam aplikasi nyata, data ini akan berasal dari React Context / Redux / Zustand.
+const DUMMY_USER_PROFILE = {
+    first_name: "Budi",
+    email: "budi.s@mail.com",
+    role: 'user', // Bisa 'user' atau 'admin'
 };
 
-// --- Custom Auth Hook (Menggunakan Firebase Asli) ---
-const useAuth = (): AuthHook => {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Hanya dianggap terautentikasi jika non-anonymous DAN data profil ada
-  const isAuthenticated = !!firebaseUser && !!userProfile && !firebaseUser.isAnonymous; 
-
-  // Reset error helper
-  const resetError = useCallback(() => setError(null), []);
-
-  // 1. Initialization and Auth Listener
-  useEffect(() => {
-    try {
-      if (!firebaseApp) {
-        // Initialize Firebase services
-        const firebaseConfig = JSON.parse(__firebase_config);
-        firebaseApp = initializeApp(firebaseConfig);
-        auth = getAuth(firebaseApp);
-        db = getFirestore(firebaseApp);
-      }
-
-      const unsubscribeAuth = onAuthStateChanged(auth as Auth, async (user: FirebaseAuthUser | null) => {
-        setFirebaseUser(user);
-        
-        if (!user) {
-          // If no user (logged out), reset profile state
-          setUserProfile(null);
-        }
-        setIsLoading(false);
-        setIsAuthReady(true);
-      });
-      
-      const initialSignIn = async () => {
-        const authInstance = auth as Auth;
-        
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(authInstance, __initial_auth_token);
-          console.log("Firebase: Signed in with custom token.");
-        } else {
-          await signInAnonymously(authInstance);
-          console.log("Firebase: Signed in anonymously.");
-        }
-      };
-
-      if (!firebaseUser && !isAuthReady) {
-        initialSignIn().catch((err: any) => {
-          console.error("Firebase Auth Error:", err);
-          setError("Gagal melakukan otentikasi awal.");
-          setIsLoading(false);
-          setIsAuthReady(true);
-        });
-      }
-
-      return () => unsubscribeAuth();
-    } catch (e: any) {
-      console.error("Firebase Initialization Error:", e);
-      setError("Gagal menginisialisasi Firebase.");
-      setIsLoading(false);
-      setIsAuthReady(true);
-    }
-  }, []); 
-
-  // 2. Real-time Profile Listener (onSnapshot)
-  useEffect(() => {
-    // PENTING: Hanya jalankan onSnapshot jika user terautentikasi dan BUKAN anonymous
-    if (!db || !firebaseUser || !isAuthReady || firebaseUser.isAnonymous) {
-      // Jika user anonymous atau logout, pastikan profile null
-      setUserProfile(null);
-      return; 
-    }
-
-    const profileRef = getUserProfilePath(firebaseUser.uid);
-    
-    const unsubscribeProfile = onSnapshot(profileRef, (docSnap: DocumentSnapshot<DocumentData>) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setUserProfile({
-          first_name: data.first_name || firebaseUser.email?.split('@')[0] || 'Pengguna',
-          email: data.email || firebaseUser.email || '',
-          role: (data.role as 'user' | 'admin') || 'user', 
-        });
-      } else {
-        console.warn("User authenticated but profile document missing. Creating default profile.");
-        // Buat profil default jika belum ada, lalu set state
-        setDoc(profileRef, {
-            first_name: firebaseUser.email?.split('@')[0] || 'Pengguna Baru',
-            email: firebaseUser.email || '',
-            role: 'user', 
-        }, { merge: true }).then(() => {
-             // State akan terupdate oleh onSnapshot berikutnya, tapi kita bisa set sementara
-             setUserProfile({
-               first_name: firebaseUser.email?.split('@')[0] || 'Pengguna Baru',
-               email: firebaseUser.email || '',
-               role: 'user',
-             });
-        }).catch((err) => {
-             console.error("Failed to create default profile:", err);
-        });
-      }
-    }, (e: any) => { 
-        console.error("Firestore Profile Error:", e);
-        setError("Gagal mengambil data profil dari Firestore.");
-    });
-
-    return () => unsubscribeProfile();
-  }, [db, firebaseUser, isAuthReady]); 
-
-  // 3. Login Function (Email/Password)
-  const login = async (email: string, password: string): Promise<void> => {
-    setError(null);
-    setIsLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth as Auth, email, password);
-    } catch (e: any) {
-      console.error("Login Error:", e);
-      // Peta error yang lebih ramah pengguna
-      const errorCode = e.code.replace('auth/', '');
-      let userMessage = "Terjadi kesalahan saat masuk.";
-      if (errorCode === 'invalid-credential' || errorCode === 'wrong-password' || errorCode === 'user-not-found') {
-          userMessage = "Email atau password salah. Coba lagi.";
-      } else if (errorCode === 'invalid-email') {
-          userMessage = "Format email tidak valid.";
-      }
-      setError(userMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 4. Register Function (Email/Password + First Name)
-  const register = async (email: string, password: string, firstName: string): Promise<void> => {
-    setError(null);
-    setIsLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth as Auth, email, password);
-      const userId = userCredential.user.uid;
-
-      const profileData: Omit<UserProfile, 'email'> & { email: string } = {
-        first_name: firstName,
-        email: email,
-        role: 'user', 
-      };
-      
-      const profileRef = getUserProfilePath(userId);
-      await setDoc(profileRef, profileData, { merge: true });
-
-    } catch (e: any) {
-      console.error("Register Error:", e);
-      // Peta error yang lebih ramah pengguna
-      const errorCode = e.code.replace('auth/', '');
-      let userMessage = "Terjadi kesalahan saat mendaftar.";
-      if (errorCode === 'email-already-in-use') {
-          userMessage = "Email sudah terdaftar. Silakan Masuk.";
-      } else if (errorCode === 'weak-password') {
-          userMessage = "Password terlalu lemah (minimal 6 karakter).";
-      } else if (errorCode === 'invalid-email') {
-          userMessage = "Format email tidak valid.";
-      }
-      setError(userMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 5. Logout Function
-  const logout = async (): Promise<void> => {
-    setError(null);
-    setIsLoading(true);
-    try {
-      await signOut(auth as Auth);
-    } catch (e: any) {
-      console.error("Logout Error:", e);
-      setError("Gagal saat keluar.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
-  return { 
-    user: userProfile, 
-    firebaseUser, 
-    isLoading: isLoading || !isAuthReady, 
-    logout, 
-    isAuthenticated, 
-    isAuthReady,
-    login,
-    register,
-    error,
-    resetError,
-  };
-};
-
-// --- Komponen AuthModal (Digabungkan) ---
-interface AuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string) => Promise<void>;
-  isLoading: boolean;
-  error: string | null;
-  resetError: () => void; // Diteruskan dari hook
-}
-
-const AuthModal: FC<AuthModalProps> = ({ isOpen, onClose, login, register, isLoading, error, resetError }) => {
-  const [isLoginView, setIsLoginView] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isLoginView) {
-      login(email, password);
-    } else {
-      register(email, password, firstName);
-    }
-  };
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    resetError(); // Bersihkan error saat input email berubah
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-    resetError(); // Bersihkan error saat input password berubah
-  };
-
-  const toggleView = () => {
-    setIsLoginView(!isLoginView);
-    setEmail('');
-    setPassword('');
-    setFirstName('');
-    resetError(); // Bersihkan error saat berganti view
-  };
-
-  const title = isLoginView ? 'Masuk ke Akun Anda' : 'Buat Akun Baru';
-  const buttonText = isLoginView ? 'Masuk' : 'Daftar';
-
-  return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div 
-        className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 sm:p-8 transform transition-all duration-300 scale-100 animate-in fade-in-0 zoom-in-95"
-        onClick={(e) => e.stopPropagation()} 
-      >
-        <div className="flex justify-between items-center mb-6 border-b pb-4">
-          <h2 className="text-2xl font-bold text-[#15406A]">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Error Message Display */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center">
-            <AlertTriangle size={20} className="mr-3" />
-            <span className="text-sm font-medium">{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          
-          {/* First Name Field (Only for Register) */}
-          {!isLoginView && (
-            <div className="relative">
-              <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Nama Depan"
-                required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-[#15406A] focus:border-[#15406A] transition"
-                disabled={isLoading}
-              />
-            </div>
-          )}
-
-          {/* Email Field */}
-          <div className="relative">
-            <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="email"
-              value={email}
-              onChange={handleEmailChange} // Menggunakan handler baru
-              placeholder="Email"
-              required
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-[#15406A] focus:border-[#15406A] transition"
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Password Field */}
-          <div className="relative">
-            <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="password"
-              value={password}
-              onChange={handlePasswordChange} // Menggunakan handler baru
-              placeholder="Password (min. 6 karakter)"
-              required
-              minLength={6}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-[#15406A] focus:border-[#15406A] transition"
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-[#15406A] text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 shadow-lg hover:bg-[#12385e] transition duration-200 disabled:bg-gray-400"
-            disabled={isLoading}
-          >
-            {isLoading && <Loader2 size={20} className="animate-spin" />}
-            <span>{buttonText}</span>
-          </button>
-        </form>
-
-        {/* Toggle Switch */}
-        <div className="mt-6 text-center text-sm">
-          {isLoginView ? (
-            <p>
-              Belum punya akun?{' '}
-              <button type="button" onClick={toggleView} className="text-[#15406A] font-semibold hover:underline">
-                Daftar Sekarang
-              </button>
-            </p>
-          ) : (
-            <p>
-              Sudah punya akun?{' '}
-              <button type="button" onClick={toggleView} className="text-[#15406A] font-semibold hover:underline">
-                Masuk
-              </button>
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-// --- Komponen Navbar Utama (Digabungkan) ---
 const NAV_ITEMS: NavItem[] = [
   { name: 'Beranda', href: '/' },
   { name: 'Reservasi', href: '/reservasi' },
@@ -407,11 +30,6 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Kontak', href: '/kontak' },
 ];
 
-interface NavLinkProps {
-  href: string;
-  name: string;
-  onClick: () => void;
-}
 // Komponen NavLink
 const NavLink: FC<NavLinkProps> = ({ href, name, onClick }) => (
   <a 
@@ -425,44 +43,33 @@ const NavLink: FC<NavLinkProps> = ({ href, name, onClick }) => (
 
 // Komponen utama Navbar
 const NavbarApp: FC = () => {
-  const { user, firebaseUser, isLoading, logout, isAuthenticated, isAuthReady, login, register, error, resetError } = useAuth(); 
-  
+  // STATE LOKAL UNTUK DEMONSTRASI:
+  // Dalam aplikasi nyata, 'isAuthenticated' dan 'user' akan diambil dari global state management.
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<typeof DUMMY_USER_PROFILE | null>(null);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false); 
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false); 
   
   const isAdmin: boolean = user?.role === 'admin';
 
-  // --- Logika Logout ---
-  const handleLogout = async (): Promise<void> => {
-    setIsDropdownOpen(false); 
-    await logout();
+  // --- Placeholder Logika (untuk Simulasi Navigasi / Toggle State) ---
+  const handleAuthAction = (action: 'login' | 'logout') => {
+    if (action === 'login') {
+        // Dalam dunia nyata: Ini akan menjadi navigasi ke router.push('/login')
+        setIsAuthenticated(true);
+        setUser(DUMMY_USER_PROFILE);
+    } else {
+        // Dalam dunia nyata: Ini akan memanggil logout() dari Auth Context
+        setIsAuthenticated(false);
+        setUser(null);
+        setIsDropdownOpen(false);
+    }
   };
-  
-  // --- Logika Buka/Tutup Modal ---
-  const handleOpenModal = () => {
-    setIsModalOpen(true);
-    resetError(); // Clear any previous error when opening modal
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    resetError(); // Clear error when closing
-  };
-  // --------------------
+  // -------------------------------------------------------------------
 
   const AuthSection: FC = () => {
-    // 1. Loading State (jika Firebase sedang inisialisasi atau otentikasi)
-    if (isLoading || !isAuthReady) {
-      return (
-        <div className="flex items-center space-x-2">
-          <Loader2 className="animate-spin text-[#15406A] h-5 w-5" />
-          <span className="text-sm text-gray-500 hidden sm:block">Memuat Auth...</span>
-        </div>
-      );
-    }
-
-    // 2. Authenticated State (Sudah Login)
+    // 1. Authenticated State (Sudah Login)
     if (isAuthenticated && user) {
       const displayName: string = user.first_name || 'Pengguna';
       
@@ -503,7 +110,8 @@ const NavbarApp: FC = () => {
               )}
 
               <button
-                onClick={handleLogout}
+                // Tombol ini sekarang hanya memanggil fungsi placeholder
+                onClick={() => handleAuthAction('logout')} 
                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center border-t mt-1 transition"
               >
                 <LogOut size={16} className="mr-2" />
@@ -515,16 +123,22 @@ const NavbarApp: FC = () => {
       );
     }
 
-    // 3. Unauthenticated State (Belum Login)
+    // 2. Unauthenticated State (Belum Login)
+    // PENTING: Tombol ini sekarang adalah LINK/BUTTON yang MENGARAHKAN
     return (
-      <button
-        onClick={handleOpenModal} // Buka modal login/register
+      <a
+        // Dalam aplikasi nyata, ini adalah link ke halaman login Anda (e.g., /auth/login)
+        href="/login" 
+        onClick={() => {
+            // Placeholder: Hanya untuk demonstrasi transisi UI
+            handleAuthAction('login'); 
+        }}
         className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium 
                    shadow-md hover:bg-[#12385e] transition duration-150 flex items-center space-x-2"
       >
         <span>Daftar / Masuk</span>
         <ArrowRight size={16} />
-      </button>
+      </a>
     );
   };
 
@@ -601,67 +215,39 @@ const NavbarApp: FC = () => {
         )}
       </nav>
       
-      {/* Konten Utama Aplikasi (Bukan Simulasi) */}
+      {/* Konten Utama Aplikasi */}
       <main className="p-8 max-w-7xl mx-auto">
           <div className="bg-white p-6 sm:p-10 rounded-xl shadow-lg border border-gray-100">
-             {/* Konten utama yang diperbaiki */}
              <h2 className="text-3xl font-bold text-[#15406A] mb-4 flex items-center">
                 <Plane size={28} className="mr-3" />
-                Layanan Reservasi Perjalanan Anda
+                Selamat Datang di TripGo
              </h2>
              <p className="text-gray-600 mb-8">
-                Di sini akan ditampilkan konten utama, seperti formulir pencarian tiket, penawaran spesial, atau destinasi populer. Silakan gunakan tombol **Daftar / Masuk** di kanan atas untuk mengelola akun Anda dan mengakses fitur reservasi.
+                Ini adalah tampilan halaman utama. Navigasi telah disiapkan.
+                Tombol **Daftar / Masuk** di kanan atas sudah diubah agar mengarahkan (atau meniru navigasi) ke halaman otentikasi.
+                Saat Anda mengkliknya, tampilan akan berubah menjadi **Logged In**.
              </p>
 
-             {/* Contoh Search Widget Placeholder */}
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-5 border border-dashed border-gray-300 rounded-lg bg-indigo-50/50">
-                <div className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm">
-                    <MapPin size={20} className="text-[#15406A]" />
-                    <input type="text" placeholder="Asal Keberangkatan" className="w-full focus:outline-none" />
+                <div className="md:col-span-3 text-center">
+                    <p className="text-lg font-semibold text-indigo-700">Pencarian Penerbangan</p>
+                    <p className="text-sm text-indigo-500">Formulir pencarian tiket akan ditempatkan di sini.</p>
                 </div>
-                <div className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm">
-                    <MapPin size={20} className="text-[#15406A]" />
-                    <input type="text" placeholder="Destinasi Tujuan" className="w-full focus:outline-none" />
-                </div>
-                <div className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm">
-                    <Calendar size={20} className="text-[#15406A]" />
-                    <input type="date" className="w-full focus:outline-none" />
-                </div>
-                <button className="col-span-1 md:col-span-3 bg-indigo-500 text-white font-semibold py-3 rounded-lg hover:bg-indigo-600 transition">
-                    Cari Tiket Sekarang
-                </button>
              </div>
 
-
              <div className="mt-12 pt-6 border-t border-gray-200">
-                <p className="font-semibold text-gray-700">Status Akun Terkini (Debug Info):</p>
-                <p className="text-gray-500 text-sm">
-                    Email: <span className="break-all font-mono">{user ? (user.email || 'N/A') : (firebaseUser?.uid || 'Belum Terautentikasi')}</span>
-                </p>
+                <p className="font-semibold text-gray-700">Status Tampilan Saat Ini (Mode Demonstrasi):</p>
                 <p className="text-gray-500 text-sm">
                     Status: <span className={`font-medium ${isAuthenticated ? 'text-green-600' : 'text-red-600'}`}>
-                              {isAuthenticated ? 'Telah Masuk (Authenticated)' : 'Belum Masuk'}
+                              {isAuthenticated ? `Telah Masuk sebagai ${user?.first_name} (${user?.role})` : 'Belum Masuk'}
                            </span>
                 </p>
-                {/* Tampilkan UID pengguna anonymous, ini penting untuk debugging di Canvas */}
-                {firebaseUser && firebaseUser.isAnonymous && (
-                    <p className="text-xs text-gray-400 mt-2 break-all">Anda login sebagai Anonymous. UID: {firebaseUser.uid}. Silakan Daftar/Masuk untuk menyimpan data.</p>
-                )}
+                <p className="text-xs text-gray-400 mt-2">
+                    *Tampilan status ini hanya untuk demonstrasi transisi UI Navbar. Dalam aplikasi nyata, Anda akan menggunakan Auth Context untuk menentukan status `isAuthenticated` dan data `user`.*
+                </p>
              </div>
           </div>
       </main>
-
-
-      {/* Auth Modal - dipanggil di sini */}
-      <AuthModal 
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        login={login}
-        register={register}
-        isLoading={isLoading}
-        error={error}
-        resetError={resetError} // Meneruskan fungsi resetError
-      />
     </div>
   );
 }
