@@ -1,3 +1,5 @@
+"use client"; // <--- INI ADALAH PERBAIKAN UTAMA UNTUK MENGATASI ERROR "Client Component"
+
 import React, { FC, useState, useEffect, useCallback } from 'react';
 import { LogOut, Loader2, Menu, X, User, Home, ArrowRight, Mail, Lock, AlertTriangle } from 'lucide-react';
 
@@ -25,7 +27,7 @@ interface NavItem {
 
 interface AuthHook {
   user: UserProfile | null;
-  firebaseUser: FirebaseAuthUser | null; // <-- FIX: Ditambahkan ke interface
+  firebaseUser: FirebaseAuthUser | null; 
   isLoading: boolean;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -116,10 +118,10 @@ const useAuth = (): AuthHook => {
 
   // 2. Real-time Profile Listener (onSnapshot)
   useEffect(() => {
+    // PENTING: Hanya jalankan onSnapshot jika user terautentikasi dan BUKAN anonymous
     if (!db || !firebaseUser || !isAuthReady || firebaseUser.isAnonymous) {
-      if(firebaseUser?.isAnonymous) {
-         setUserProfile(null);
-      }
+      // Jika user anonymous atau logout, pastikan profile null
+      setUserProfile(null);
       return; 
     }
 
@@ -134,11 +136,21 @@ const useAuth = (): AuthHook => {
           role: (data.role as 'user' | 'admin') || 'user', 
         });
       } else {
-        console.warn("User authenticated but profile document missing. Using default data.");
-        setUserProfile({
-           first_name: firebaseUser.email?.split('@')[0] || 'Pengguna',
-           email: firebaseUser.email || '',
-           role: 'user',
+        console.warn("User authenticated but profile document missing. Creating default profile.");
+        // Buat profil default jika belum ada, lalu set state
+        setDoc(profileRef, {
+            first_name: firebaseUser.email?.split('@')[0] || 'Pengguna Baru',
+            email: firebaseUser.email || '',
+            role: 'user', 
+        }, { merge: true }).then(() => {
+             // State akan terupdate oleh onSnapshot berikutnya, tapi kita bisa set sementara
+             setUserProfile({
+               first_name: firebaseUser.email?.split('@')[0] || 'Pengguna Baru',
+               email: firebaseUser.email || '',
+               role: 'user',
+             });
+        }).catch((err) => {
+             console.error("Failed to create default profile:", err);
         });
       }
     }, (e: any) => { 
@@ -157,7 +169,15 @@ const useAuth = (): AuthHook => {
       await signInWithEmailAndPassword(auth as Auth, email, password);
     } catch (e: any) {
       console.error("Login Error:", e);
-      setError(e.code.replace('auth/', '').replace(/-/g, ' '));
+      // Peta error yang lebih ramah pengguna
+      const errorCode = e.code.replace('auth/', '');
+      let userMessage = "Terjadi kesalahan saat masuk.";
+      if (errorCode === 'invalid-credential' || errorCode === 'wrong-password' || errorCode === 'user-not-found') {
+          userMessage = "Email atau password salah. Coba lagi.";
+      } else if (errorCode === 'invalid-email') {
+          userMessage = "Format email tidak valid.";
+      }
+      setError(userMessage);
     } finally {
       setIsLoading(false);
     }
@@ -182,7 +202,17 @@ const useAuth = (): AuthHook => {
 
     } catch (e: any) {
       console.error("Register Error:", e);
-      setError(e.code.replace('auth/', '').replace(/-/g, ' '));
+      // Peta error yang lebih ramah pengguna
+      const errorCode = e.code.replace('auth/', '');
+      let userMessage = "Terjadi kesalahan saat mendaftar.";
+      if (errorCode === 'email-already-in-use') {
+          userMessage = "Email sudah terdaftar. Silakan Masuk.";
+      } else if (errorCode === 'weak-password') {
+          userMessage = "Password terlalu lemah (minimal 6 karakter).";
+      } else if (errorCode === 'invalid-email') {
+          userMessage = "Format email tidak valid.";
+      }
+      setError(userMessage);
     } finally {
       setIsLoading(false);
     }
@@ -205,7 +235,7 @@ const useAuth = (): AuthHook => {
 
   return { 
     user: userProfile, 
-    firebaseUser, // <-- Mengembalikan firebaseUser
+    firebaseUser, 
     isLoading: isLoading || !isAuthReady, 
     logout, 
     isAuthenticated, 
@@ -225,9 +255,10 @@ interface AuthModalProps {
   register: (email: string, password: string, firstName: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  resetError: () => void; // Diteruskan dari hook
 }
 
-const AuthModal: FC<AuthModalProps> = ({ isOpen, onClose, login, register, isLoading, error }) => {
+const AuthModal: FC<AuthModalProps> = ({ isOpen, onClose, login, register, isLoading, error, resetError }) => {
   const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -244,11 +275,22 @@ const AuthModal: FC<AuthModalProps> = ({ isOpen, onClose, login, register, isLoa
     }
   };
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    resetError(); // Bersihkan error saat input email berubah
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    resetError(); // Bersihkan error saat input password berubah
+  };
+
   const toggleView = () => {
     setIsLoginView(!isLoginView);
     setEmail('');
     setPassword('');
     setFirstName('');
+    resetError(); // Bersihkan error saat berganti view
   };
 
   const title = isLoginView ? 'Masuk ke Akun Anda' : 'Buat Akun Baru';
@@ -271,7 +313,7 @@ const AuthModal: FC<AuthModalProps> = ({ isOpen, onClose, login, register, isLoa
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center">
             <AlertTriangle size={20} className="mr-3" />
-            <span className="text-sm font-medium">Terjadi Kesalahan: {error}</span>
+            <span className="text-sm font-medium">{error}</span>
           </div>
         )}
 
@@ -299,7 +341,7 @@ const AuthModal: FC<AuthModalProps> = ({ isOpen, onClose, login, register, isLoa
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange} // Menggunakan handler baru
               placeholder="Email"
               required
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-[#15406A] focus:border-[#15406A] transition"
@@ -313,7 +355,7 @@ const AuthModal: FC<AuthModalProps> = ({ isOpen, onClose, login, register, isLoa
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange} // Menggunakan handler baru
               placeholder="Password (min. 6 karakter)"
               required
               minLength={6}
@@ -383,7 +425,6 @@ const NavLink: FC<NavLinkProps> = ({ href, name, onClick }) => (
 
 // Komponen utama Navbar
 const NavbarApp: FC = () => {
-  // FIX: Destructuring firebaseUser dari useAuth
   const { user, firebaseUser, isLoading, logout, isAuthenticated, isAuthReady, login, register, error, resetError } = useAuth(); 
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
@@ -570,14 +611,17 @@ const NavbarApp: FC = () => {
              <div className="mt-8 p-4 bg-gray-50 rounded-lg text-sm">
                 <p className="font-semibold text-gray-700">Status Autentikasi Saat Ini:</p>
                 <p className="text-gray-500">
-                    {/* FIX: Menggunakan firebaseUser yang sudah didefinisikan */}
-                    User ID: {user ? (user.email || 'N/A') : (firebaseUser?.uid || 'Belum Terautentikasi / Anonymous')}
+                    User Email/ID: <span className="break-all">{user ? (user.email || 'N/A') : (firebaseUser?.uid || 'Belum Terautentikasi')}</span>
                 </p>
                 <p className="text-gray-500">
                     Status: <span className={`font-medium ${isAuthenticated ? 'text-green-600' : 'text-red-600'}`}>
-                              {isAuthenticated ? 'Telah Masuk' : 'Belum Masuk'}
+                              {isAuthenticated ? 'Telah Masuk (Authenticated)' : 'Belum Masuk'}
                            </span>
                 </p>
+                {/* Tampilkan UID pengguna anonymous, ini penting untuk debugging di Canvas */}
+                {firebaseUser && firebaseUser.isAnonymous && (
+                    <p className="text-xs text-gray-400 mt-2 break-all">Anda login sebagai Anonymous (UID: {firebaseUser.uid}). Silakan Daftar/Masuk untuk menyimpan data.</p>
+                )}
              </div>
           </div>
       </main>
@@ -591,6 +635,7 @@ const NavbarApp: FC = () => {
         register={register}
         isLoading={isLoading}
         error={error}
+        resetError={resetError} // Meneruskan fungsi resetError
       />
     </div>
   );
