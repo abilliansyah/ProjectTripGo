@@ -60,7 +60,7 @@ const NavbarApp: FC = () => {
   // Komponen untuk bagian authentikasi
   const AuthSection: FC = () => {
     // Jika masih loading, tampilkan loading indicator
-    if (loading) {
+    if (isLoading) {
       return (
         <div className="bg-gray-200 animate-pulse px-4 py-2 rounded-lg w-28 h-9"></div>
       );
