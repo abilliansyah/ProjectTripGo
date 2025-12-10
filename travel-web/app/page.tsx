@@ -63,7 +63,7 @@ const HomePage: React.FC = () => {
                         <div className="shadow-2xl rounded-xl overflow-hidden max-w-5xl mx-auto h-72 sm:h-96 relative">
                             <SectionImage
                                 // GANTI DENGAN PATH LOKAL ANDA: "/images/hero-bali.jpg"
-                                src="/images/hero-bali.jpg" 
+                                src="/image/hero-bali.jpg" 
                                 alt="Pemandangan indah" 
                                 className="w-full h-full"
                             />
@@ -85,7 +85,7 @@ const HomePage: React.FC = () => {
                             <div className="rounded-xl shadow-2xl relative w-full h-72">
                                 <SectionImage 
                                     // GANTI DENGAN PATH LOKAL ANDA: "/images/tripgo-bus.png"
-                                    src="/images/tripgo-bus.png"
+                                    src="/image/tripgo-bus.png"
                                     alt="Bus TripGo modern" 
                                     className="w-full h-full"
                                 />
