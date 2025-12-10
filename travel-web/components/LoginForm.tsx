@@ -64,7 +64,7 @@ export default function LoginForm() {
         login(access_token, user); 
 
         // Redirect hanya jika login dan penyimpanan data berhasil
-        router.push("/dashboard");
+        router.push("/");
         
       } catch (runtimeError: any) {
         // Jika terjadi error saat memproses respons (misal, di hook useAuth)

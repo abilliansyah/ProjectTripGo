@@ -2,6 +2,8 @@
 
 import React, { FC, useState } from 'react';
 import { LogOut, Menu, X, User, Home, ArrowRight, Plane } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 // --- Definisi Tipe (Interfaces) ---
 interface NavItem {
@@ -36,66 +38,78 @@ const NavLink: FC<NavLinkProps> = ({ href, name, onClick }) => (
 
 // --- Komponen Utama Navbar ---
 const NavbarApp: FC = () => {
-  // Hanya menyimpan state untuk interaksi UI seperti menu mobile dan dropdown.
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false); 
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   
-  // NOTE PENTING: Untuk menjalankan aplikasi nyata, Anda HARUS mengambil
-  // status 'isAuthenticated', 'user', dan fungsi 'logout' dari React Context (atau Redux/Zustand)
-  // yang terhubung ke database/Firebase Anda.
+  // Mengambil data dari AuthContext
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Karena ini adalah komponen presentational murni, kita akan menampilkan
-  // tampilan Logged Out (sebagai link) dan memberikan contoh tampilan Logged In (dicomment).
+  // Handler untuk logout
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsDropdownOpen(false);
+      router.push('/');
+    } catch (error) {
+      console.error('Error saat logout:', error);
+    }
+  };
 
+  // Komponen untuk bagian authentikasi
   const AuthSection: FC = () => {
+    // Jika masih loading, tampilkan loading indicator
+    if (loading) {
+      return (
+        <div className="bg-gray-200 animate-pulse px-4 py-2 rounded-lg w-28 h-9"></div>
+      );
+    }
 
-    // ===================================================================
-    // TAMPILAN DEFAULT (LOGGED OUT / BELUM MASUK)
-    // ===================================================================
+    // Jika user belum login
+    if (!user) {
+      return (
+        <a
+          href="/login"
+          className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium 
+                     shadow-md hover:bg-[#12385e] transition duration-150 flex items-center space-x-2"
+        >
+          <span>Daftar / Masuk</span>
+          <ArrowRight size={16} />
+        </a>
+      );
+    }
+
+    // Jika user sudah login
+    const displayName: string = user.first_name || user.email?.split('@')[0] || 'User';
+    const isAdmin: boolean = user.role === 'admin';
+
     return (
-      <a
-        // Dalam aplikasi nyata, ini adalah link yang diarahkan oleh router Anda
-        href="/login" 
-        className="bg-[#15406A] text-white px-4 py-2 rounded-lg text-sm font-medium 
-                   shadow-md hover:bg-[#12385e] transition duration-150 flex items-center space-x-2"
-      >
-        <span>Daftar / Masuk</span>
-        <ArrowRight size={16} />
-      </a>
-    );
+      <div className="relative">
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="flex items-center space-x-2 bg-[#15406A] text-white px-3 py-2 rounded-lg text-sm font-medium shadow-md hover:bg-[#12385e] transition duration-150"
+        >
+          <User size={16} />
+          <span className="truncate max-w-[100px] hidden sm:block">{displayName}</span>
+        </button>
 
-
-    // ===================================================================
-    // CONTOH TAMPILAN (LOGGED IN / SUDAH MASUK) - Hapus /* dan */ untuk mengaktifkan
-    // Ganti nilai 'DUMMY_USER' dengan data dari Auth Context Anda.
-    // ===================================================================
-    /*
-    const DUMMY_USER = {
-        first_name: "John",
-        role: "user"
-    };
-    const displayName: string = DUMMY_USER.first_name;
-    const isAdmin: boolean = DUMMY_USER.role === 'admin';
-    
-    return (
-        <div className="relative">
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center space-x-2 bg-[#15406A] text-white px-3 py-2 rounded-lg text-sm font-medium shadow-md hover:bg-[#12385e] transition duration-150"
-          >
-            <User size={16} />
-            <span className="truncate max-w-[100px] hidden sm:block">{displayName}</span>
-          </button>
-
-          {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl z-50 py-1 ring-1 ring-black ring-opacity-5 origin-top-right animate-in fade-in-0 zoom-in-95">
+        {isDropdownOpen && (
+          <>
+            {/* Overlay untuk menutup dropdown saat klik di luar */}
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setIsDropdownOpen(false)}
+            ></div>
+            
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl z-50 py-1 ring-1 ring-black ring-opacity-5">
               <div className="px-4 py-3 text-sm text-gray-700 font-semibold truncate border-b border-gray-100">
                 Halo, {displayName}
               </div>
               
               <a 
                 href="/dashboard" 
-                className="px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 transition flex items-center" 
+                className="block px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 transition flex items-center" 
                 onClick={() => setIsDropdownOpen(false)}
               >
                 <User size={16} className="mr-2" />
@@ -105,7 +119,7 @@ const NavbarApp: FC = () => {
               {isAdmin && (
                 <a 
                   href="/admin/dashboard" 
-                  className="px-4 py-2 text-sm text-red-600 font-bold hover:bg-red-50 transition flex items-center"
+                  className="block px-4 py-2 text-sm text-red-600 font-bold hover:bg-red-50 transition flex items-center"
                   onClick={() => setIsDropdownOpen(false)}
                 >
                   <Home size={16} className="mr-2" />
@@ -114,21 +128,18 @@ const NavbarApp: FC = () => {
               )}
 
               <button
-                // PENTING: Ganti ini dengan fungsi logout yang sebenarnya dari Auth Context Anda
-                onClick={() => console.log("Fungsi Logout Dipanggil")} 
+                onClick={handleLogout}
                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center border-t mt-1 transition"
               >
                 <LogOut size={16} className="mr-2" />
                 Keluar
               </button>
             </div>
-          )}
-        </div>
+          </>
+        )}
+      </div>
     );
-    */
-    // ===================================================================
   };
-
 
   return (
     <div className="font-sans">
@@ -138,7 +149,7 @@ const NavbarApp: FC = () => {
             
             {/* Logo */}
             <a href="/" className="flex-shrink-0 flex items-center">
-                <Plane size={24} className="text-[#15406A] mr-2" />
+              <Plane size={24} className="text-[#15406A] mr-2" />
               <h1 className="text-xl font-extrabold text-[#15406A] tracking-tight">TripGo</h1>
             </a>
             
@@ -184,17 +195,34 @@ const NavbarApp: FC = () => {
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[#15406A] hover:bg-gray-50"
                 >
                   {item.name}
-              </a>
+                </a>
               ))}
               
-              {/* NOTE: Tampilkan link Dashboard HANYA jika isAuthenticated (harus dihubungkan ke context) */}
-              {/* <a href="/dashboard" ...> Dashboard Saya </a> */}
+              {/* Link Dashboard untuk mobile (hanya tampil jika sudah login) */}
+              {user && (
+                <a 
+                  href="/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[#15406A] hover:bg-gray-50"
+                >
+                  Dashboard Saya
+                </a>
+              )}
+
+              {/* Link Admin Panel untuk mobile (hanya tampil jika admin) */}
+              {user?.role === 'admin' && (
+                <a 
+                  href="/admin/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-3 py-2 rounded-md text-base font-medium text-red-600 font-bold hover:bg-red-50"
+                >
+                  Admin Panel
+                </a>
+              )}
             </div>
           </div>
         )}
       </nav>
-      
-      {/* PENTING: Tidak ada konten lain di luar komponen Navbar ini. */}
     </div>
   );
 }
