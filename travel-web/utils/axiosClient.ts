@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://projecttripgo-production-1bec.up.railway.app/api',
+  baseURL:'https://projecttripgo-production-1bec.up.railway.app/api',
   withCredentials: true,
   headers: {
     'X-Requested-With': 'XMLHttpRequest',
