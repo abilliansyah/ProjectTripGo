@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Calendar, Clock, User, Armchair, QrCode, Download, Share2, Loader2, MapPin } from "lucide-react";
 
 export default function DetailTiket() {
-  const { orderId } = useParams();
+  const params = useParams();
+  const orderId = params?.orderId;
   const router = useRouter();
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -13,18 +14,41 @@ export default function DetailTiket() {
   useEffect(() => {
     const fetchTiket = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const res = await fetch(`${apiUrl}/bookings/${orderId}`);
-        if (!res.ok) throw new Error("Gagal mengambil data");
-        const data = await res.json();
-        setBooking(data);
+        // Gunakan URL langsung jika ENV tidak terbaca di Vercel
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://projecttripgo-production-1bec.up.railway.app/api';
+        
+        const res = await fetch(`${baseUrl}/bookings/${orderId}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          // Pastikan cache tidak menyimpan data lama
+          cache: 'no-store'
+        });
+
+        if (!res.ok) {
+          console.error(`Fetch error: ${res.status}`);
+          throw new Error("Gagal mengambil data tiket");
+        }
+
+        const result = await res.json();
+        
+        // Menangani jika Laravel menggunakan API Resource (data biasanya di dalam properti .data)
+        const finalData = result.data ? result.data : result;
+        setBooking(finalData);
+        
       } catch (error) {
-        console.error("Error:", error);
+        console.error("Error fetching data:", error);
+        setBooking(null);
       } finally {
         setLoading(false);
       }
     };
-    if (orderId) fetchTiket();
+
+    if (orderId) {
+      fetchTiket();
+    }
   }, [orderId]);
 
   if (loading) {
@@ -44,6 +68,7 @@ export default function DetailTiket() {
       <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="bg-white rounded-3xl p-8 shadow-xl">
           <p className="font-bold text-gray-800 text-lg mb-4">Tiket Tidak Ditemukan</p>
+          <p className="text-gray-500 text-sm mb-6">ID Pesanan: {orderId}</p>
           <button 
             onClick={() => router.push('/')} 
             className="mt-2 bg-orange-500 text-white font-bold px-6 py-3 rounded-xl hover:bg-orange-600 transition-all active:scale-95"
@@ -76,36 +101,32 @@ export default function DetailTiket() {
           <div className="w-12"></div>
         </div>
 
-        {/* Ticket Card - Landscape */}
+        {/* Ticket Card */}
         <div className="bg-white rounded-3xl overflow-hidden shadow-2xl relative transform hover:scale-[1.01] transition-transform duration-300">
           <div className="flex flex-col md:flex-row">
             {/* Left Section - Orange Sidebar */}
             <div className="w-full md:w-48 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-500 p-8 text-white relative overflow-hidden flex flex-col">
               <div className="absolute inset-0 bg-black opacity-5"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full opacity-10 -mr-16 -mt-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full opacity-10 -ml-12 -mb-12"></div>
-              
               <div className="relative z-10 flex-1 flex flex-col justify-between">
                 <div>
-                  {/* PENGGANTIAN ICON KE LOGO PNG */}
                   <div className="bg-white p-2 rounded-2xl inline-block mb-4 shadow-inner">
                     <img 
                       src="/image/logo.png" 
                       alt="TripGo Logo" 
-                      className="w-10 h-10 object-contain" 
+                      className="w-10 h-10 object-contain"
+                      onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/40"; }} 
                     />
                   </div>
                   <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-1">TRIPGO</h2>
                   <p className="text-sm font-bold opacity-90 tracking-wide mb-2">EXPRESS</p>
                   <p className="text-[9px] font-bold uppercase opacity-80 tracking-[0.25em] text-orange-100">
-                    {schedule?.class || "EKONOMI AC"}
+                    {schedule?.class || "REGULER"}
                   </p>
                 </div>
 
-                {/* Status Badge */}
                 <div className="mt-8">
                   <div className={`px-4 py-2 rounded-full text-[10px] font-black shadow-lg border-2 uppercase backdrop-blur-sm text-center
-                    ${currentStatus.toLowerCase() === 'success' 
+                    ${currentStatus.toLowerCase() === 'success' || currentStatus.toLowerCase() === 'paid' 
                       ? 'bg-emerald-500 text-white border-emerald-400' 
                       : 'bg-amber-400 text-amber-900 border-amber-300'}`}>
                     {currentStatus.toUpperCase()}
@@ -117,7 +138,6 @@ export default function DetailTiket() {
             {/* Right Section - Main Content */}
             <div className="flex-1 p-8">
               <div className="h-full flex flex-col justify-between">
-                {/* Route Section */}
                 <div className="mb-6">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-gradient-to-r from-orange-50 via-white to-orange-50 rounded-2xl p-6 border-2 border-orange-100">
                     <div className="text-center sm:text-left">
@@ -150,7 +170,6 @@ export default function DetailTiket() {
                   </div>
                 </div>
 
-                {/* Details and QR Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 grid grid-cols-2 gap-4">
                     <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -174,14 +193,14 @@ export default function DetailTiket() {
                         <User size={14} />
                         <span className="text-[9px] font-bold uppercase tracking-wide">Nama</span>
                       </div>
-                      <p className="font-bold text-gray-800 text-sm truncate">{booking.customer_name || "Tamu"}</p>
+                      <p className="font-bold text-gray-800 text-sm truncate">{booking.customer_name || "Pelanggan"}</p>
                     </div>
                     <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                       <div className="flex items-center gap-2 text-orange-500 mb-2">
                         <Armchair size={14} />
                         <span className="text-[9px] font-bold uppercase tracking-wide">Kursi</span>
                       </div>
-                      <p className="font-bold text-gray-800 text-sm">{booking.seat_count || 0} Kursi</p>
+                      <p className="font-bold text-gray-800 text-sm">{booking.seat_count || 1} Kursi</p>
                     </div>
                   </div>
 
@@ -190,7 +209,7 @@ export default function DetailTiket() {
                     <div className="bg-white p-3 rounded-xl shadow-md border border-orange-100 mb-2">
                       <QrCode size={80} className="text-gray-800" />
                     </div>
-                    <p className="text-[9px] font-black text-gray-700 uppercase tracking-widest">{booking.order_id}</p>
+                    <p className="text-[9px] font-black text-gray-700 uppercase tracking-widest">{booking.order_id || orderId}</p>
                   </div>
                 </div>
 

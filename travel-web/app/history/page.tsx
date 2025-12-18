@@ -10,19 +10,44 @@ export default function HistoryPage() {
   const router = useRouter();
 
   const fetchHistory = async () => {
+    // Pastikan token ada sebelum melakukan fetch
+    const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+    
+    if (!token) {
+      console.error("Token tidak ditemukan, silakan login kembali.");
+      // router.push('/login'); // Opsional: redirect jika tidak ada token
+      return;
+    }
+
     setLoading(true);
     try {
-      const token = localStorage.getItem("token"); 
-      const res = await fetch(`http://127.0.0.1:8000/api/my-history`, {
+      // Menggunakan URL Railway dari env atau langsung ke production
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://projecttripgo-production-1bec.up.railway.app/api';
+      
+      const res = await fetch(`${baseUrl}/my-history`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        cache: 'no-store'
       });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+             console.error("Sesi telah berakhir");
+             // localStorage.removeItem("token");
+        }
+        throw new Error("Gagal mengambil history");
+      }
+
       const result = await res.json();
-      setHistory(result.data || []);
+      // Laravel API Resource biasanya membungkus data dalam property 'data'
+      setHistory(result.data || result || []);
+      
     } catch (err) {
-      console.error("Gagal mengambil history");
+      console.error("Gagal mengambil history:", err);
     } finally {
       setLoading(false);
     }
@@ -47,7 +72,7 @@ export default function HistoryPage() {
           ) : history.length > 0 ? (
             history.map((item: any) => (
               <div 
-                key={item.order_id} 
+                key={item.order_id || item.id} 
                 onClick={() => router.push(`/tiket-saya/${item.order_id}`)}
                 className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-blue-500 transition cursor-pointer group"
               >
@@ -57,7 +82,7 @@ export default function HistoryPage() {
                     <h3 className="text-gray-800 font-medium">{item.order_id}</h3>
                   </div>
                   <span className={`px-4 py-1.5 rounded-lg text-[10px] font-medium uppercase ${
-                    item.status === 'settlement' || item.status === 'success' 
+                    item.status === 'settlement' || item.status === 'success' || item.status === 'paid'
                     ? 'bg-green-100 text-green-700' 
                     : 'bg-orange-100 text-orange-600'
                   }`}>
@@ -69,14 +94,13 @@ export default function HistoryPage() {
                   <div>
                     <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Rute Perjalanan</p>
                     <div className="text-blue-900 text-sm flex items-center gap-2">
-                      {item.schedule?.origin} <ArrowRight size={12} /> {item.schedule?.destination}
+                      {item.schedule?.origin || 'Unknown'} <ArrowRight size={12} /> {item.schedule?.destination || 'Unknown'}
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Total</p>
                     <p className="text-gray-800 font-medium">
-                      {/* Perbaikan di sini: Menggunakan total_amount */}
-                      IDR {Number(item.total_amount || 0).toLocaleString('id-ID')}
+                      IDR {Number(item.total_amount || item.price || 0).toLocaleString('id-ID')}
                     </p>
                   </div>
                 </div>
