@@ -13,7 +13,8 @@ export default function DetailTiket() {
   useEffect(() => {
     const fetchTiket = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/bookings/${orderId}`);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        const res = await fetch(`${apiUrl}/bookings/${orderId}`);
         if (!res.ok) throw new Error("Gagal mengambil data");
         const data = await res.json();
         setBooking(data);
