@@ -24,6 +24,10 @@ Route::get('/bookings/{order_id}', [BookingController::class, 'show']);
 // Ambil history berdasarkan email (karena biasanya tamu tidak login)
 Route::get('/bookings/history/{email}', [BookingController::class, 'history']);
 Route::middleware('auth:sanctum')->get('/my-history', [BookingController::class, 'myHistory']);
+Route::get('/run-seeder', function () {
+    Artisan::call('db:seed', ['--force' => true]);
+    return "Seeder berhasil dijalankan!";
+});
 
 // --- Rute Protected (Membutuhkan Token Sanctum) ---
 Route::middleware('auth:sanctum')->group(function () {
