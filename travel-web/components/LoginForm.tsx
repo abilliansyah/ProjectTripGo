@@ -67,7 +67,7 @@ export default function LoginForm() {
       await axiosClient.get("/sanctum/csrf-cookie");
 
       // 2. API Login
-      const response = await axiosClient.post("/api/login", {
+      const response = await axiosClient.post("/login", {
         email,
         password,
       });

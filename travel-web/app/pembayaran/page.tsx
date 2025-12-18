@@ -95,7 +95,7 @@ function PembayaranContent() {
       }
 
       // 2. Request Token ke API Route Next.js (Internal)
-      const resMidtrans = await fetch("/api/tokenizer", {
+      const resMidtrans = await fetch("/tokenizer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -125,7 +125,7 @@ function PembayaranContent() {
   const checkPaymentStatus = async (orderId: string) => {
     setIsChecking(true);
     try {
-      const response = await fetch(`${API_URL}/api/bookings/status/${orderId}`);
+      const response = await fetch(`${API_URL}/bookings/status/${orderId}`);
       const result = await response.json();
       
       // Menangani status Midtrans (settlement/success)

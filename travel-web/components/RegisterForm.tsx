@@ -108,7 +108,7 @@ export default function RegisterForm() {
     // --- 3. Panggilan Registrasi (POST) ---
     try {
       // Karena baseURL sudah diatur di axiosClient, kita panggil langsung endpoint:
-      const response = await axiosClient.post('/api/register', {
+      const response = await axiosClient.post('/register', {
         first_name: firstName,
         last_name: lastName,
         email: email,
