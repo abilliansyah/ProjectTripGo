@@ -1,39 +1,41 @@
-import React, { ReactNode } from 'react';
-// PERBAIKAN: Mengganti './components/Navbar' menjadi '../components/Navbar'
-import Navbar from '../components/NavbarApp'; 
-// PERBAIKAN: Mengganti './context/AuthContext' menjadi '../context/AuthContext'
-import { AuthProvider } from '../context/AuthContext'; 
+import type { Metadata } from "next";
+// Import Poppins dari google fonts
+import { Inter, Poppins } from "next/font/google";
+import "./globals.css";
+import NavbarApp from "@/components/NavbarApp";
+import Footer from "@/components/Footer";
 
-// Asumsi ada file global.css untuk Tailwind CSS
-// Import global.css jika ada, atau tambahkan styling di sini.
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: "--font-inter", // Gunakan variabel CSS
+});
 
-const RootLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-poppins", // Definisikan variabel CSS untuk Poppins
+});
+
+export const metadata: Metadata = {
+  title: "TripGo - Solusi Perjalanan Modern",
+  description: "Platform transportasi minibus nyaman dan aman",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="id">
-      <head>
-        <title>TripGo | Platform Perjalanan Modern</title>
-        {/* Load Tailwind CSS from CDN for simplicity in single-file React */}
-        <script src="https://cdn.tailwindcss.com"></script>
-        {/* Tambahkan konfigurasi font Inter jika diperlukan */}
-        <style>{`
-          body { font-family: 'Inter', sans-serif; }
-        `}</style>
-      </head>
-      <body>
-        {/* AuthProvider membungkus seluruh aplikasi */}
-        <AuthProvider>
-          <div className="min-h-screen bg-gray-50">
-            <Navbar />
-            <main className="flex-grow">
-              {children}
-            </main>
-            {/* Anda bisa menambahkan Footer di sini jika ada */}
-            {/* <Footer /> */}
-          </div>
-        </AuthProvider>
+    <html lang="en">
+      {/* Tambahkan variabel font ke dalam body className */}
+      <body className={`${inter.variable} ${poppins.variable} font-sans`}>
+        <NavbarApp />
+        <div className="min-h-screen">
+           {children}
+        </div>
+        <Footer />
       </body>
     </html>
   );
-};
-
-export default RootLayout;
+}

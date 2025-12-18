@@ -1,15 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
-import axios from "axios";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import axiosClient from "@/utils/axiosClient";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 
 export default function LoginForm() {
   const router = useRouter();
-  // Asumsi hook useAuth ada dan memiliki fungsi 'login'
-  const { login } = useAuth(); 
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
+
+  // Menangkap parameter redirect untuk dikembalikan setelah login
+  const redirectTo = searchParams.get("redirect");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,13 +21,32 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Validasi sederhana
+  // Injeksi gaya animasi
+  useEffect(() => {
+    const styles = `
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-4px); }
+        75% { transform: translateX(4px); }
+      }
+      .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+      .animate-shake { animation: shake 0.2s ease-in-out 2; }
+    `;
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+    return () => { document.head.removeChild(styleSheet); };
+  }, []);
+
   const validateForm = () => {
     if (!email.includes("@")) {
       setError("Format email tidak valid.");
       return false;
     }
-    // Menggunakan min 8 karakter agar sesuai dengan validasi backend Laravel
     if (password.length < 8) {
       setError("Kata Sandi minimal 8 karakter.");
       return false;
@@ -37,63 +59,53 @@ export default function LoginForm() {
     setError("");
 
     if (!validateForm()) return;
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-    
-    if (!API_BASE_URL) {
-      setError("NEXT_PUBLIC_API_BASE_URL belum diset. Cek file .env Anda.");
-      return;
-    }
 
     try {
       setLoading(true);
 
-      // --- PANGGILAN API ---
-      // Endpoint yang digunakan: https://projecttripgo-production.up.railway.app/api/login
-      const response = await axios.post(`${API_BASE_URL}/api/login`, {
+      // 1. CSRF Cookie (Sanctum)
+      await axiosClient.get("/sanctum/csrf-cookie");
+
+      // 2. API Login
+      const response = await axiosClient.post("/api/login", {
         email,
         password,
       });
 
-      // --- START: Blok Sukses dengan Penanganan Error Internal ---
-      // Ini WAJIB untuk menangkap error runtime JS yang terjadi setelah API call sukses (Status 200 OK)
-      try {
-        // Backend Anda mengembalikan { user, access_token, token_type } langsung di response.data
-        const { access_token, user } = response.data; 
-        
-        // Memanggil hook login untuk menyimpan token/user
-        login(access_token, user); 
+      // 3. Proses Sukses
+      const { access_token, user } = response.data;
 
-        // Redirect hanya jika login dan penyimpanan data berhasil
-        router.push("/");
+      if (access_token) {
+        // Simpan ke localStorage melalui hook
+        login(access_token, user);
         
-      } catch (runtimeError: any) {
-        // Jika terjadi error saat memproses respons (misal, di hook useAuth)
-        console.error("Login Runtime Error (After API Success):", runtimeError);
-        setError("Login berhasil, tetapi terjadi error saat memproses data pengguna. Silakan coba bersihkan cache/cookies atau periksa hook useAuth.");
+        // REVISI LOGIKA REDIRECT:
+        // Gunakan window.location.href agar Navbar melakukan hard-refresh 
+        // dan membaca state 'user' terbaru dari localStorage.
+        setTimeout(() => {
+          const targetPath = redirectTo ? decodeURIComponent(redirectTo) : "/";
+          window.location.href = targetPath;
+        }, 100);
+
+      } else {
+        throw new Error("Token tidak ditemukan.");
       }
-      // --- END: Blok Sukses dengan Penanganan Error Internal ---
-
 
     } catch (err: any) {
-      // --- Blok Kegagalan API (401, 422, 500) ---
       console.error("Login API Error:", err);
-      
       let errorMessage = "Email atau Kata Sandi salah.";
 
       if (err.response) {
-          if (err.response.status === 401) {
-              // Menangani response 401 dari backend
-              errorMessage = err.response.data?.message || errorMessage;
-          } else if (err.response.status === 422) {
-              errorMessage = "Terdapat kesalahan validasi data.";
-          } else {
-              errorMessage = `Terjadi kesalahan pada server (Status: ${err.response.status}). Mohon coba lagi.`;
-          }
-      } else {
-          // Kesalahan Jaringan
-          errorMessage = "Gagal terhubung ke server. Cek koneksi internet Anda (Error API/CORS).";
+        if (err.response.status === 401) {
+          errorMessage = err.response.data?.message || "Kredensial tidak valid.";
+        } else if (err.response.status === 419) {
+          errorMessage = "Sesi kedaluwarsa. Silakan segarkan halaman.";
+        } else {
+          errorMessage = `Server Error (${err.response.status}).`;
+        }
+      } else if (err.code === "ERR_NETWORK") {
+        errorMessage = "Koneksi terputus ke server Backend.";
       }
-      
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -101,106 +113,88 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 animate-fadeIn">
-
-      {/* Error / Pesan Notifikasi */}
+    <form 
+      onSubmit={handleSubmit} 
+      className={`space-y-6 animate-fadeIn ${error ? 'animate-shake' : ''}`}
+    >
+      {/* Pesan Error */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm animate-shake">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm transition-all">
           {error}
         </div>
       )}
 
-      {/* Email */}
-      <div>
-        <label className="block mb-1 font-medium">Alamat Email</label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+      {/* Input Email */}
+      <div className="space-y-1">
+        <label className="block text-sm font-semibold text-gray-700">Alamat Email</label>
+        <div className="relative group">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#15406A] transition-colors" size={18} />
           <input
             type="email"
-            placeholder="Masukan Alamat Email"
+            placeholder="nama@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm 
-                        focus:ring-2 focus:ring-blue-300 focus:border-blue-500 
-                        transition-all duration-200"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-[#15406A] outline-none transition-all"
+            required
           />
         </div>
       </div>
 
-      {/* Password */}
-      <div>
-        <label className="block mb-1 font-medium">Kata Sandi</label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+      {/* Input Password */}
+      <div className="space-y-1">
+        <label className="block text-sm font-semibold text-gray-700">Kata Sandi</label>
+        <div className="relative group">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#15406A] transition-colors" size={18} />
           <input
             type="password"
-            placeholder="Masukan Kata Sandi"
+            placeholder="Masukkan kata sandi Anda"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm
-                        focus:ring-2 focus:ring-blue-300 focus:border-blue-500 
-                        transition-all duration-200"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-[#15406A] outline-none transition-all"
+            required
           />
         </div>
       </div>
 
-      {/* Remember + Forgot */}
-      <div className="flex justify-between text-sm">
-        <label className="flex items-center gap-2">
+      {/* Fitur Tambahan */}
+      <div className="flex justify-between items-center text-sm">
+        <label className="flex items-center gap-2 cursor-pointer select-none text-gray-600">
           <input
             type="checkbox"
             checked={remember}
             onChange={() => setRemember(!remember)}
-            className="rounded border-gray-300"
+            className="w-4 h-4 rounded border-gray-300 text-[#15406A] focus:ring-[#15406A]"
           />
-          ingat saya
+          Ingat saya
         </label>
 
         <button
           type="button"
-          className="text-gray-500 hover:text-gray-700 transition"
+          className="text-[#15406A] font-medium hover:underline transition"
         >
-          lupa kata sandi?
+          Lupa kata sandi?
         </button>
       </div>
 
-      {/* Button */}
+      {/* Tombol Submit */}
       <button
         type="submit"
         disabled={loading}
-        className={`w-full py-3 rounded-lg text-white font-semibold text-lg shadow-md transition-all
-        ${loading ? "bg-blue-300 cursor-not-allowed" : "bg-[#15406A] hover:bg-[#12385e]"}`}
+        className={`w-full py-3 rounded-lg text-white font-bold text-lg shadow-md transition-all flex justify-center items-center gap-2
+        ${loading 
+          ? "bg-gray-400 cursor-not-allowed" 
+          : "bg-[#15406A] hover:bg-[#0d2a47] active:scale-[0.98] shadow-[#15406A]/20"
+        }`}
       >
         {loading ? (
-          <div className="flex justify-center items-center">
-            <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span className="ml-2">Memproses...</span>
-          </div>
+          <>
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Memverifikasi...</span>
+          </>
         ) : (
           "Masuk"
         )}
       </button>
     </form>
   );
-}
-
-/* ---- Animasi Tambahan ---- */
-const styles = `
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-3px); }
-  75% { transform: translateX(3px); }
-}
-.animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-.animate-shake { animation: shake 0.25s ease-in-out; }
-`;
-
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.innerHTML = styles;
-  document.head.appendChild(style);
 }

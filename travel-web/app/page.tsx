@@ -1,118 +1,174 @@
-// app/page.tsx
-/**
- * Catatan:
- * 1. Navbar harusnya diimpor di app/layout.tsx untuk ditampilkan di semua halaman.
- * 2. Saya mengasumsikan ImageWithFallback dan SearchForm diimpor dari folder components.
- * 3. Ganti URL gambar dengan path lokal Anda di public/images (misal: "/images/hero-bali.jpg").
- */
-import React from 'react';
-import Image from 'next/image'; // Next.js Image component untuk optimasi
+"use client";
 
-// Import komponen yang sudah Anda definisikan (disesuaikan dengan path Anda)
-import SearchForm from '@/components/SearchForm'; // Asumsi: Anda memindahkannya ke components/SearchForm.tsx
-import Footer from '@/components/Footer'; // Asumsi: Anda memindahkannya ke components/Footer.tsx
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { Search, MapPin, Calendar, Users } from "lucide-react";
 
-// --- Client Component untuk Image (menggunakan ImageWithFallback jika perlu) ---
-// Jika Anda ingin menggunakan ImageWithFallback, Anda harus menjadikannya Client Component,
-// atau gunakan Image bawaan Next.js untuk performa terbaik.
-// Karena kita tidak memiliki ImageWithFallback di sini, kita gunakan Image standar.
-// *GANTI DENGAN KOMPONEN ImageWithFallback ANDA JIKA PERLU*
+export default function HomePage() {
+  const router = useRouter();
 
-interface SectionImageProps {
-    src: string;
-    alt: string;
-    className: string;
-}
+  // 1. State disesuaikan dengan kebutuhan parameter reservasi
+  const [search, setSearch] = useState({
+    origin: "",
+    destination: "",
+    date: "",
+    seat_count: "1", // Diganti dari 'passengers' ke 'seat_count' agar sinkron
+  });
 
-const SectionImage: React.FC<SectionImageProps> = ({ src, alt, className }) => (
-    <div className={className}>
-        {/* Menggunakan Image dari Next.js untuk optimasi */}
-        <Image 
-            src={src} 
-            alt={alt} 
+  const cities = [
+    "CILEGON", "SERANG", "TANGERANG", "JAKARTA", "BOGOR", 
+    "BANDUNG", "CIREBON", "TEGAL", "PEKALONGAN", "SEMARANG", 
+    "SALATIGA", "SOLO", "YOGYAKARTA", "MADIUN", "SURABAYA"
+  ];
+
+  const handleSearch = () => {
+    // Validasi input
+    if (!search.origin || !search.destination || !search.date) {
+      alert("Silakan lengkapi lokasi asal, tujuan, dan tanggal keberangkatan!");
+      return;
+    }
+
+    if (search.origin === search.destination) {
+      alert("Lokasi asal dan tujuan tidak boleh sama!");
+      return;
+    }
+
+    // Mengirim data ke halaman reservasi
+    // Query string akan menjadi: ?origin=...&destination=...&date=...&seat_count=...
+    const queryString = new URLSearchParams(search).toString();
+    router.push(`/reservasi?${queryString}`);
+  };
+
+  return (
+    <main className="pt-24 pb-20 font-poppins">
+      {/* --- HERO SECTION --- */}
+      <section className="max-w-7xl mx-auto px-4 text-center space-y-6">
+        <h1 className="text-5xl font-bold text-blue-900 tracking-tight">TripGo</h1>
+        <p className="max-w-2xl mx-auto text-gray-500 leading-relaxed text-sm">
+          Platform perjalanan modern untuk minibus antar kota. Nikmati pengalaman 
+          pemesanan yang mudah, aman, dan nyaman dalam satu aplikasi.
+        </p>
+
+        {/* Gambar Hero */}
+        <div className="relative w-full max-w-5xl mx-auto h-[350px] md:h-[500px] rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white">
+          <Image 
+            src="/image/hero-bali.jpg" 
+            alt="TripGo Travel" 
             fill 
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            style={{ objectFit: 'cover' }}
-            className="rounded-xl"
-        />
-    </div>
-);
-
-
-const HomePage: React.FC = () => {
-    // Definisi warna utama: Biru Tua (#15406A) dan Oranye (#FF7A00)
-
-    return (
-        <div className="min-h-screen bg-white font-sans">
-            <main>
-                
-                {/* === 1. Hero Section === */}
-                <div className="relative pt-16 pb-40 bg-gray-50 overflow-hidden">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="text-center mb-12">
-                            {/* Judul & Deskripsi */}
-                            <h1 className="text-4xl font-extrabold text-[#15406A] sm:text-5xl lg:text-6xl tracking-tight">
-                                TripGo
-                            </h1>
-                            <p className="mt-4 text-lg text-gray-600 max-w-4xl mx-auto">
-                                Trip Go adalah platform perjalanan dan transportasi modern yang dirancang untuk menemani setiap perjalanan Anda. Kami menyediakan layanan minibus dengan menghadirkan pengalaman pemesanan yang mudah, aman, dan nyaman. Trip Go melayani rute utama **Cilegon - Serang - Rangkasbitung - Tanahabang.**
-                            </p>
-                        </div>
-                        
-                        {/* Gambar Hero (Pemandangan) */}
-                        <div className="shadow-2xl rounded-xl overflow-hidden max-w-5xl mx-auto h-72 sm:h-96 relative">
-                            <SectionImage
-                                // GANTI DENGAN PATH LOKAL ANDA: "/images/hero-bali.jpg"
-                                src="/image/hero-bali.jpg" 
-                                alt="Pemandangan indah" 
-                                className="w-full h-full"
-                            />
-                        </div>
-                    </div>
-                    
-                    {/* Search Form (PENTING: Pastikan ini adalah Client Component) */}
-                    {/* Kami menggunakan komponen SearchForm Anda di sini */}
-                    <SearchForm /> 
-                </div>
-                
-                {/* === 2. Section Tentang TripGo === */}
-                <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 py-16">
-                    <h2 className="text-4xl font-bold text-gray-900 mb-16 text-center">Tentang TripGo</h2>
-                    
-                    <div className="flex flex-wrap items-center lg:flex-row-reverse gap-10">
-                        {/* Kolom Gambar Bus */}
-                        <div className="w-full lg:w-5/12">
-                            <div className="rounded-xl shadow-2xl relative w-full h-72">
-                                <SectionImage 
-                                    // GANTI DENGAN PATH LOKAL ANDA: "/images/tripgo-bus.png"
-                                    src="/image/tripgo-bus.png"
-                                    alt="Bus TripGo modern" 
-                                    className="w-full h-full"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Kolom Teks */}
-                        <div className="w-full lg:w-1/2">
-                            <p className="text-gray-600 mb-4 text-lg leading-relaxed">
-                                TripGo telah dipercaya oleh banyak penumpang sebagai solusi perjalanan antar kota yang aman dan nyaman. Kami menyediakan berbagai jenis minibus modern dengan fasilitas lengkap seperti **AC dingin, kursi ergonomis, charger port,** dan **hiburan** selama perjalanan, memastikan setiap perjalanan terasa menyenangkan.
-                            </p>
-                            <p className="text-gray-600 mb-6 text-lg leading-relaxed">
-                                Dengan harga tiket yang terjangkau dan sistem pemesanan yang mudah, TripGo berkomitmen untuk memberikan pengalaman terbaik bagi setiap pelanggan.
-                            </p>
-                            <p className="text-[#15406A] font-extrabold text-xl mt-6">
-                                Nikmati perjalanan tanpa khawatir bersama TripGo.
-                            </p>
-                        </div>
-                    </div>
-                </section>
-                
-            </main>
-            
-            {/* Footer diimpor dari komponen terpisah */}
-            <Footer />
+            className="object-cover"
+            priority
+          />
         </div>
-    );
-}
 
-export default HomePage;
+        {/* SEARCH BAR (Floating) */}
+        <div className="relative -mt-20 z-10 max-w-6xl mx-auto bg-white rounded-3xl shadow-2xl p-8 border border-gray-50">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+            
+            {/* Lokasi Awal */}
+            <div className="text-left md:border-r border-gray-100 pr-4">
+              <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-2 tracking-widest uppercase">
+                <MapPin size={12} className="text-blue-500" /> Lokasi Awal
+              </label>
+              <select 
+                value={search.origin}
+                onChange={(e) => setSearch({ ...search, origin: e.target.value })}
+                className="w-full font-semibold text-gray-800 outline-none bg-transparent cursor-pointer appearance-none"
+              >
+                <option value="">PILIH ASAL</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Lokasi Tujuan */}
+            <div className="text-left md:border-r border-gray-100 pr-4">
+              <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-2 tracking-widest uppercase">
+                <MapPin size={12} className="text-red-500" /> Tujuan
+              </label>
+              <select 
+                value={search.destination}
+                onChange={(e) => setSearch({ ...search, destination: e.target.value })}
+                className="w-full font-semibold text-gray-800 outline-none bg-transparent cursor-pointer appearance-none"
+              >
+                <option value="">PILIH TUJUAN</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Keberangkatan */}
+            <div className="text-left md:border-r border-gray-100 pr-4">
+              <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-2 tracking-widest uppercase">
+                <Calendar size={12} className="text-green-500" /> Tanggal
+              </label>
+              <input 
+                type="date" 
+                value={search.date}
+                onChange={(e) => setSearch({ ...search, date: e.target.value })}
+                className="w-full font-semibold text-gray-800 outline-none bg-transparent cursor-pointer" 
+              />
+            </div>
+
+            {/* Penumpang */}
+            <div className="text-left">
+              <label className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-2 tracking-widest uppercase">
+                <Users size={12} className="text-orange-500" /> Penumpang
+              </label>
+              <select 
+                value={search.seat_count}
+                onChange={(e) => setSearch({ ...search, seat_count: e.target.value })}
+                className="w-full font-semibold text-gray-800 outline-none bg-transparent cursor-pointer appearance-none"
+              >
+                {[1, 2, 3, 4, 5, 6].map(num => (
+                  <option key={num} value={num}>{num} Orang</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tombol Cari */}
+            <div className="flex items-center">
+              <button 
+                onClick={handleSearch}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-200 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Search size={18} />
+                Cari Tiket
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* --- ABOUT SECTION --- */}
+      <section className="max-w-7xl mx-auto px-4 mt-32 grid md:grid-cols-2 gap-20 items-center">
+        <div className="space-y-6">
+          <div className="inline-block px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-xs font-bold tracking-widest uppercase">
+            Travel Terpercaya
+          </div>
+          <h2 className="text-4xl font-bold text-gray-900 leading-tight">Perjalanan Aman, <br/> Hati Tenang.</h2>
+          <p className="text-gray-500 leading-relaxed text-justify">
+            TripGo menghadirkan armada minibus terbaru dengan standar keamanan tinggi. 
+            Setiap unit kami dilengkapi dengan AC, kursi yang dapat direbahkan, 
+            dan pengemudi berpengalaman yang siap mengantar Anda sampai tujuan.
+          </p>
+          <div className="pt-4">
+             <button className="border-b-2 border-blue-600 text-blue-600 font-bold text-sm pb-1">Selengkapnya tentang kami</button>
+          </div>
+        </div>
+        
+        <div className="relative w-full h-[300px] md:h-[400px]">
+          <Image 
+            src="/image/tripgo-bus.png" 
+            alt="Armada TripGo" 
+            fill 
+            className="object-contain" 
+          />
+        </div>
+      </section>
+    </main>
+  );
+}

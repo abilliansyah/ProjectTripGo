@@ -1,11 +1,11 @@
+// components/RegisterForm.tsx
 'use client';
 
 import React, { useState } from 'react';
-import axios from 'axios';
+// Menggunakan klien axios yang sudah dikonfigurasi untuk menangani cookies (CSRF)
+import axiosClient from '@/utils/axiosClient'; 
 import { useRouter } from 'next/navigation';
-import { User, Mail, Phone, Lock, LucideIcon, Loader2 } from 'lucide-react'; // Menambahkan LucideIcon untuk tipe
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { User, Mail, Phone, Lock, LucideIcon, Loader2 } from 'lucide-react'; 
 
 // --- Interface untuk Komponen InputField ---
 interface InputFieldProps {
@@ -15,7 +15,7 @@ interface InputFieldProps {
   placeholder: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  icon?: LucideIcon; // Menggunakan tipe LucideIcon dari lucide-react
+  icon?: LucideIcon; 
   required?: boolean;
 }
 // --- Akhir Interface ---
@@ -68,7 +68,6 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   
   const router = useRouter();
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,33 +75,40 @@ export default function RegisterForm() {
     setSuccess('');
     setLoading(true);
 
+    // --- 1. Validasi Frontend ---
     if (!agreeToTerms) {
       setError('Anda harus menyetujui kebijakan privasi untuk mendaftar.');
       setLoading(false);
       return;
     }
-
     if (password.length < 8) {
       setError('Kata sandi minimal harus 8 karakter.');
       setLoading(false);
       return;
     }
-
     if (password !== passwordConfirmation) {
       setError('Kata sandi dan konfirmasi kata sandi tidak cocok.');
       setLoading(false);
       return;
     }
     
-    if (!API_BASE_URL) {
-      setError('Konfigurasi Error: API URL belum diatur.');
+    // --- 2. Ambil CSRF Cookie ---
+    try {
+      // Panggil endpoint ini terlebih dahulu untuk mendapatkan cookie XSRF-TOKEN
+      await axiosClient.get('/sanctum/csrf-cookie'); 
+    } catch (err: any) {
+      console.error("CSRF Cookie Error:", err);
+      // Jika terjadi error di sini, kemungkinan besar masalah CORS atau backend sedang down/error 404
+      setError('Gagal mendapatkan token keamanan (CSRF). Periksa koneksi ke backend.');
       setLoading(false);
       return;
     }
 
+
+    // --- 3. Panggilan Registrasi (POST) ---
     try {
-      // PERBAIKAN: Menggunakan /api/register untuk mengatasi Error 404
-      const response = await axios.post(`${API_BASE_URL}/api/register`, {
+      // Karena baseURL sudah diatur di axiosClient, kita panggil langsung endpoint:
+      const response = await axiosClient.post('/api/register', {
         first_name: firstName,
         last_name: lastName,
         email: email,
@@ -119,12 +125,12 @@ export default function RegisterForm() {
 
     } catch (err: any) {
       console.error('Register Error:', err);
-      const errorMessage = err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi. (Cek konsol untuk detail)';
+      const errorMessage = err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi.';
       
       if (err.response && err.response.status === 404) {
-          // Pesan lebih spesifik untuk 404
-          setError(`Error 404: Rute API tidak ditemukan. Pastikan URL API Anda benar dan rute '/api/register' sudah didefinisikan di Laravel (saat ini memanggil: ${API_BASE_URL}/api/register)`);
+          setError(`Error 404: Rute API '/api/register' tidak ditemukan di backend.`);
       } else if (err.response && err.response.status === 422) {
+          // Penanganan Error Validasi (422)
           const validationErrors = err.response.data.errors;
           let detailedError = errorMessage + '\n\n';
           for (const key in validationErrors) {
@@ -245,7 +251,7 @@ export default function RegisterForm() {
         >
           {loading ? (
             <div className="flex items-center gap-2">
-               <Loader2 className="h-5 w-5 animate-spin text-white" />
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
               <span>Memproses...</span>
             </div>
           ) : (
