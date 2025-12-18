@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-// Import Poppins dari google fonts
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import NavbarApp from "@/components/NavbarApp";
 import Footer from "@/components/Footer";
+import Script from "next/script"; // 1. Import Script dari next/script
 
 const inter = Inter({ 
   subsets: ["latin"],
-  variable: "--font-inter", // Gunakan variabel CSS
+  variable: "--font-inter",
 });
 
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800", "900"],
-  variable: "--font-poppins", // Definisikan variabel CSS untuk Poppins
+  variable: "--font-poppins",
 });
 
 export const metadata: Metadata = {
@@ -28,7 +28,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      {/* Tambahkan variabel font ke dalam body className */}
+      <head>
+        {/* 2. Tambahkan Script Midtrans di dalam head */}
+        <Script
+          src="https://app.sandbox.midtrans.com/snap/snap.js"
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+          strategy="afterInteractive" // Memuat setelah halaman interaktif
+        />
+      </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans`}>
         <NavbarApp />
         <div className="min-h-screen">
