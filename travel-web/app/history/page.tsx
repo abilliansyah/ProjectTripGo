@@ -2,52 +2,30 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import axiosClient from "@/utils/axiosClient"; // Gunakan axiosClient yang sama dengan Reservasi
 import { Ticket, ArrowRight, Loader2 } from "lucide-react";
 
 export default function HistoryPage() {
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const fetchHistory = async () => {
-    // Pastikan token ada sebelum melakukan fetch
-    const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
-    
-    if (!token) {
-      console.error("Token tidak ditemukan, silakan login kembali.");
-      // router.push('/login'); // Opsional: redirect jika tidak ada token
-      return;
-    }
-
     setLoading(true);
     try {
-      // Menggunakan URL Railway dari env atau langsung ke production
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://projecttripgo-production-1bec.up.railway.app/api';
+      // Menggunakan axiosClient agar token otomatis terlampir di header Authorization
+      const response = await axiosClient.get("/my-history");
       
-      const res = await fetch(`${baseUrl}/my-history`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        cache: 'no-store'
-      });
-
-      if (!res.ok) {
-        if (res.status === 401) {
-             console.error("Sesi telah berakhir");
-             // localStorage.removeItem("token");
-        }
-        throw new Error("Gagal mengambil history");
-      }
-
-      const result = await res.json();
-      // Laravel API Resource biasanya membungkus data dalam property 'data'
-      setHistory(result.data || result || []);
+      // Menangani struktur data Laravel (result.data atau result.data.data)
+      const result = response.data.data || response.data;
+      setHistory(Array.isArray(result) ? result : []);
       
-    } catch (err) {
+    } catch (err: any) {
       console.error("Gagal mengambil history:", err);
+      if (err.response?.status === 401) {
+        // Jika token tidak valid, arahkan ke login
+        router.push('/login');
+      }
     } finally {
       setLoading(false);
     }
