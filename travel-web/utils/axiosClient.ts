@@ -1,12 +1,12 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-  // Gunakan env variable, jika tidak ada baru pakai localhost (untuk dev)
-  baseURL: `${process.env.NEXT_PUBLIC_API_URL}/api`,
+  baseURL: 'https://projecttripgo-production-1bec.up.railway.app/api', // pastikan ada /api jika prefix di laravel
+  withCredentials: true, // WAJIB TRUE
   headers: {
-    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    'Accept': 'application/json',
   },
-  withCredentials: true, // Penting jika Anda menggunakan Sanctum/Cookies
 });
 
 export default axiosClient;

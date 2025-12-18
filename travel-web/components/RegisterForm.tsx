@@ -1,8 +1,6 @@
-// components/RegisterForm.tsx
 'use client';
 
 import React, { useState } from 'react';
-// Menggunakan klien axios yang sudah dikonfigurasi untuk menangani cookies (CSRF)
 import axiosClient from '@/utils/axiosClient'; 
 import { useRouter } from 'next/navigation';
 import { User, Mail, Phone, Lock, LucideIcon, Loader2 } from 'lucide-react'; 
@@ -18,7 +16,6 @@ interface InputFieldProps {
   icon?: LucideIcon; 
   required?: boolean;
 }
-// --- Akhir Interface ---
 
 const InputField: React.FC<InputFieldProps> = ({ 
   id, 
@@ -53,7 +50,6 @@ const InputField: React.FC<InputFieldProps> = ({
     </div>
   </div>
 );
-// --- AKHIR KOMPONEN INPUTFIELD ---
 
 export default function RegisterForm() {
   const [firstName, setFirstName] = useState('');
@@ -75,40 +71,27 @@ export default function RegisterForm() {
     setSuccess('');
     setLoading(true);
 
-    // --- 1. Validasi Frontend ---
+    // 1. Validasi Sederhana
     if (!agreeToTerms) {
       setError('Anda harus menyetujui kebijakan privasi untuk mendaftar.');
       setLoading(false);
       return;
     }
-    if (password.length < 8) {
-      setError('Kata sandi minimal harus 8 karakter.');
-      setLoading(false);
-      return;
-    }
+
     if (password !== passwordConfirmation) {
-      setError('Kata sandi dan konfirmasi kata sandi tidak cocok.');
-      setLoading(false);
-      return;
-    }
-    
-    // --- 2. Ambil CSRF Cookie ---
-    try {
-      // Panggil endpoint ini terlebih dahulu untuk mendapatkan cookie XSRF-TOKEN
-      await axiosClient.get('/sanctum/csrf-cookie'); 
-    } catch (err: any) {
-      console.error("CSRF Cookie Error:", err);
-      // Jika terjadi error di sini, kemungkinan besar masalah CORS atau backend sedang down/error 404
-      setError('Gagal mendapatkan token keamanan (CSRF). Periksa koneksi ke backend.');
+      setError('Konfirmasi kata sandi tidak cocok.');
       setLoading(false);
       return;
     }
 
-
-    // --- 3. Panggilan Registrasi (POST) ---
     try {
-      // Karena baseURL sudah diatur di axiosClient, kita panggil langsung endpoint:
-      const response = await axiosClient.post('/register', {
+      // 2. Inisialisasi CSRF (PENTING!)
+      // Jalankan ini tanpa prefix /api jika rute sanctum Anda di luar /api
+      // Jika error, coba ganti ke axiosClient.get('/sanctum/csrf-cookie')
+      await axiosClient.get('https://projecttripgo-production-1bec.up.railway.app/sanctum/csrf-cookie');
+
+      // 3. Kirim Data Registrasi
+      await axiosClient.post('/register', {
         first_name: firstName,
         last_name: lastName,
         email: email,
@@ -117,30 +100,25 @@ export default function RegisterForm() {
         password_confirmation: passwordConfirmation,
       });
 
-      setSuccess('Pendaftaran berhasil! Anda akan dialihkan ke halaman Masuk.');
+      setSuccess('Pendaftaran berhasil! Mengalihkan ke halaman Masuk...');
       
       setTimeout(() => {
         router.push('/login');
       }, 2000);
 
     } catch (err: any) {
-      console.error('Register Error:', err);
-      const errorMessage = err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi.';
+      console.error('Full Error Object:', err);
       
-      if (err.response && err.response.status === 404) {
-          setError(`Error 404: Rute API '/api/register' tidak ditemukan di backend.`);
-      } else if (err.response && err.response.status === 422) {
-          // Penanganan Error Validasi (422)
-          const validationErrors = err.response.data.errors;
-          let detailedError = errorMessage + '\n\n';
-          for (const key in validationErrors) {
-              detailedError += `• ${validationErrors[key].join(', ')}\n`;
-          }
-          setError(detailedError.trim());
+      if (err.response?.status === 419) {
+        setError('Masalah Keamanan (CSRF Mismatch). Silakan refresh halaman atau cek koneksi backend.');
+      } else if (err.response?.status === 422) {
+        // Gabungkan pesan error validasi dari Laravel
+        const validationErrors = err.response.data.errors;
+        const msg = Object.values(validationErrors).flat().join(', ');
+        setError(`Validasi gagal: ${msg}`);
       } else {
-          setError(errorMessage);
+        setError(err.response?.data?.message || 'Terjadi kesalahan saat mendaftar.');
       }
-      
     } finally {
       setLoading(false);
     }
@@ -161,13 +139,11 @@ export default function RegisterForm() {
         </div>
       )}
 
-      {/* Nama Depan & Belakang */}
       <div className="grid grid-cols-2 gap-4">
         <InputField 
           id="first_name" 
           label="Nama Depan" 
-          type="text" 
-          placeholder="Nama Depan Anda" 
+          placeholder="Nama Depan" 
           value={firstName} 
           onChange={(e) => setFirstName(e.target.value)} 
           icon={User}
@@ -175,8 +151,7 @@ export default function RegisterForm() {
         <InputField 
           id="last_name" 
           label="Nama Belakang" 
-          type="text" 
-          placeholder="Nama Belakang Anda" 
+          placeholder="Nama Belakang" 
           value={lastName} 
           onChange={(e) => setLastName(e.target.value)} 
           icon={User}
@@ -187,7 +162,7 @@ export default function RegisterForm() {
         id="email" 
         label="Alamat Email" 
         type="email" 
-        placeholder="Masukkan Alamat Email" 
+        placeholder="nama@email.com" 
         value={email} 
         onChange={(e) => setEmail(e.target.value)} 
         icon={Mail}
@@ -197,7 +172,7 @@ export default function RegisterForm() {
         id="phone" 
         label="Nomor Telepon" 
         type="tel" 
-        placeholder="Masukkan Nomor Telepon" 
+        placeholder="0812xxxx" 
         value={phone} 
         onChange={(e) => setPhone(e.target.value)} 
         icon={Phone}
@@ -207,7 +182,7 @@ export default function RegisterForm() {
         id="password" 
         label="Kata Sandi" 
         type="password" 
-        placeholder="Masukkan Kata Sandi (Min. 8 karakter)" 
+        placeholder="Min. 8 karakter" 
         value={password} 
         onChange={(e) => setPassword(e.target.value)} 
         icon={Lock}
@@ -217,7 +192,7 @@ export default function RegisterForm() {
         id="password_confirmation" 
         label="Konfirmasi Kata Sandi" 
         type="password" 
-        placeholder="Masukkan Ulang Kata Sandi" 
+        placeholder="Ulangi kata sandi" 
         value={passwordConfirmation} 
         onChange={(e) => setPasswordConfirmation(e.target.value)} 
         icon={Lock}
@@ -227,7 +202,6 @@ export default function RegisterForm() {
         <div className="flex items-center h-5">
             <input
             id="agree-to-terms"
-            name="agree-to-terms"
             type="checkbox"
             checked={agreeToTerms}
             onChange={(e) => setAgreeToTerms(e.target.checked)}
