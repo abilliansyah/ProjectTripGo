@@ -7,37 +7,23 @@ use Illuminate\Foundation\Http\Kernel as HttpKernel;
 class Kernel extends HttpKernel
 {
     /**
-     * The application's global HTTP middleware stack.
-     *
-     * These middleware are run during every request to your application.
-     *
-     * @var array<int, class-string|string>
+     * Middleware global yang dijalankan di setiap request.
      */
     protected $middleware = [
+        // WAJIB: HandleCors harus selalu berada di urutan paling ATAS
         \Illuminate\Http\Middleware\HandleCors::class,
-        // \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
-        
-        // >>> PERBAIKAN KRITIS: Middleware CORS Kustom Ditempatkan di sini <<<
-        // Hapus HandleCors bawaan, ganti dengan ForceCors
-        //\App\Http\Middleware\ForceCors::class, 
-
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-        \Illuminate\Http\Middleware\HandleCors::class, // Pastikan baris ini ada
-        \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,     
     ];
 
     /**
-     * The application's route middleware groups.
-     *
-     * @var array<string, array<int, class-string|string>>
+     * Grup middleware aplikasi.
      */
     protected $middlewareGroups = [
         'web' => [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
@@ -47,19 +33,15 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            // WAJIB: Tambahkan ini di atas untuk mendukung stateful auth (Sanctum)
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
-            \Illuminate\Routing\Middleware\SubstituteBindings::class, 
-            'throttle:api',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
-    
+
     /**
-     * The application's middleware aliases.
-     *
-     * Aliases may be used to conveniently assign middleware to routes and groups.
-     *
-     * @var array<string, class-string|string>
+     * Middleware aliases.
      */
     protected $middlewareAliases = [
         'auth' => \App\Http\Middleware\Authenticate::class,
