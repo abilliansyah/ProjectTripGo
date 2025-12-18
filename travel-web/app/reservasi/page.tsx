@@ -39,7 +39,7 @@ function ReservasiContent() {
     setHasSearched(true);
     try {
       // Endpoint ini akan menembak ke Railway via axiosClient
-      const response = await axiosClient.get("/api/schedules", {
+      const response = await axiosClient.get("/schedules", {
         params: { origin, destination }
       });
       setSchedules(response.data);
