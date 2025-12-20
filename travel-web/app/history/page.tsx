@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import axiosClient from "@/utils/axiosClient";
 import { Ticket, ArrowRight, Loader2, Clock, Calendar, MapPin } from "lucide-react";
 
+// Komponen Timer: Format HH:MM:SS, Warna Merah, Font Besar
 const CountdownTimer = ({ createdAt, onExpire }: { createdAt: string; onExpire: () => void }) => {
   const [timeLeft, setTimeLeft] = useState("");
   const [isExpired, setIsExpired] = useState(false);
@@ -12,7 +13,7 @@ const CountdownTimer = ({ createdAt, onExpire }: { createdAt: string; onExpire: 
   useEffect(() => {
     const calculateTime = () => {
       const startTime = new Date(createdAt).getTime();
-      const expiryTime = startTime + 2 * 60 * 60 * 1000; 
+      const expiryTime = startTime + 2 * 60 * 60 * 1000; // Batas 2 Jam
       const now = new Date().getTime();
       const diff = expiryTime - now;
 
@@ -65,11 +66,14 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
-  // FORMAT TANGGAL: Memastikan mendukung format YYYY-MM-DD
-  const formatDate = (dateString: any) => {
-    if (!dateString) return "BELUM SET";
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "TGL TIDAK VALID";
+  // Memastikan format tanggal terbaca meski nama field di database berbeda-beda
+  const getFormattedDate = (schedule: any) => {
+    const dateValue = schedule?.departure_date || schedule?.date || schedule?.tanggal;
+    
+    if (!dateValue) return "TGL TIDAK ADA";
+
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return "FORMAT ERROR";
     
     return date.toLocaleDateString('id-ID', {
       day: 'numeric',
@@ -79,7 +83,7 @@ export default function HistoryPage() {
   };
 
   const handleItemClick = (item: any, isExpired: boolean) => {
-    // Jika hangus, hentikan eksekusi klik
+    // Jika tiket sudah hangus, dilarang navigasi
     if (isExpired) return;
 
     const status = item.status?.toLowerCase();
@@ -87,7 +91,7 @@ export default function HistoryPage() {
       const query = new URLSearchParams({
         order_id: item.order_id,
         price: (item.total_amount || item.total_price || 0).toString(),
-        seat_count: item.seat_count.toString(),
+        seat_count: item.seat_count?.toString() || "1",
         customer_name: item.customer_name || "",
         customer_email: item.customer_email || "",
         customer_phone: item.customer_phone || "",
@@ -100,8 +104,8 @@ export default function HistoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 pt-28 pb-20 px-4 font-poppins text-left">
-      <div className="max-w-2xl mx-auto">
+    <main className="min-h-screen bg-gray-50 pt-28 pb-20 px-4 font-poppins">
+      <div className="max-w-2xl mx-auto text-left">
         <h1 className="text-2xl text-blue-900 mb-8 font-black italic uppercase tracking-tighter text-left">
           Riwayat <span className="text-blue-600">Transaksi</span>
         </h1>
@@ -123,7 +127,6 @@ export default function HistoryPage() {
                 <div 
                   key={item.order_id || item.id} 
                   onClick={() => handleItemClick(item, isHangus)}
-                  // Menambahkan cursor-not-allowed jika hangus
                   className={`bg-white p-8 rounded-[2.5rem] border transition-all relative overflow-hidden shadow-2xl ${
                     isHangus 
                       ? 'grayscale opacity-60 border-gray-200 cursor-not-allowed' 
@@ -132,6 +135,7 @@ export default function HistoryPage() {
                         : 'border-blue-100 shadow-blue-100/50 hover:border-blue-500 cursor-pointer'
                   } group`}
                 >
+                  {/* HEADER: ORDER ID & STATUS */}
                   <div className="flex justify-between items-start mb-8">
                     <div className="text-left">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Order ID</p>
@@ -141,7 +145,7 @@ export default function HistoryPage() {
                     </div>
                     
                     <div className="flex flex-col items-center">
-                        <span className={`px-6 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest italic border ${
+                        <span className={`px-6 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest italic border text-center min-w-[100px] ${
                         isHangus ? 'bg-gray-100 text-gray-400 border-gray-200' :
                         isSuccess ? 'bg-green-50 text-green-600 border-green-200' :
                         'bg-orange-50 text-orange-600 border-orange-200'
@@ -161,11 +165,11 @@ export default function HistoryPage() {
                         <div className="flex flex-col text-left">
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Tanggal</span>
                             <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                                {formatDate(item.schedule?.departure_date || item.schedule?.date)}
+                                {getFormattedDate(item.schedule)}
                             </span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4 border-l border-gray-200/50 pl-6 flex-1 text-left">
+                    <div className="flex items-center gap-4 border-l border-gray-200/50 pl-6 flex-1">
                         <div className={`p-3 rounded-2xl ${isPending ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
                            <Clock size={18} />
                         </div>
@@ -178,6 +182,7 @@ export default function HistoryPage() {
                     </div>
                   </div>
 
+                  {/* FOOTER: RUTE & HARGA */}
                   <div className={`flex justify-between items-end border-t pt-8 ${isPending ? 'border-orange-100' : 'border-blue-100'}`}>
                     <div className="text-left">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
@@ -198,7 +203,7 @@ export default function HistoryPage() {
               );
             })
           ) : (
-            <div className="text-center py-40 bg-white rounded-[3rem] italic font-black text-gray-200 uppercase tracking-[0.5em] text-sm">
+            <div className="text-center py-40 bg-white rounded-[3rem] italic font-black text-gray-200 uppercase tracking-[0.5em] text-sm border-2 border-dashed border-gray-100">
                KOSONG
             </div>
           )}
