@@ -1,14 +1,12 @@
 "use client";
 
-import React, { useState, Suspense, useEffect } from "react";
+import React, { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import axiosClient from "@/utils/axiosClient"; // Gunakan axiosClient Anda
 import { 
   ChevronDown, Copy, CheckCircle2, Wallet, Building2, 
   Store, ArrowLeft, Zap, Loader2
 } from "lucide-react";
-
-// Helper untuk URL API agar dinamis saat hosting
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 const paymentLogos: { [key: string]: string } = {
   bca: "/logos/bca.png",
@@ -21,8 +19,6 @@ const paymentLogos: { [key: string]: string } = {
   qris: "/logos/qris.png",
   alfamart: "/logos/alfamart.png",
   indomaret: "/logos/indomaret.png",
-  akulaku: "/logos/akulaku.png",
-  kredivo: "/logos/kredivo.png",
 };
 
 function PembayaranContent() {
@@ -48,53 +44,28 @@ function PembayaranContent() {
     setLoadingMethod(subMethod || method);
     
     try {
-      const token = localStorage.getItem("token"); 
-
-      if (!token) {
-          alert("Sesi anda berakhir. Silakan login kembali.");
-          router.push("/login");
-          return;
-      }
-
-      // 1. Simpan pesanan ke Laravel (Railway)
-      const resLaravel = await fetch(`${API_URL}/api/bookings`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}` 
-        },
-        body: JSON.stringify({
-          user_id: data.userId,
-          schedule_id: data.scheduleId,
-          customer_name: data.nama,
-          customer_email: data.email,
-          customer_phone: data.telepon,
-          seat_count: data.seatCount, 
-          total_price: data.price * data.seatCount,
-          payment_method: subMethod || method 
-        })
+      // 1. Simpan pesanan ke Laravel melalui axiosClient (Otomatis membawa Token)
+      const resLaravel = await axiosClient.post("/bookings", {
+        user_id: data.userId,
+        schedule_id: data.scheduleId,
+        customer_name: data.nama,
+        customer_email: data.email,
+        customer_phone: data.telepon,
+        seat_count: data.seatCount, 
+        total_price: data.price * data.seatCount,
+        payment_method: subMethod || method 
       });
 
-      const laravelResult = await resLaravel.json();
-      
-      if (resLaravel.status === 401) {
-        alert("Sesi anda berakhir, silakan login kembali.");
-        router.push("/login");
-        return;
-      }
+      const orderId = resLaravel.data.data?.order_id || resLaravel.data.order_id;
 
-      if (!resLaravel.ok) throw new Error(laravelResult.message || "Gagal membuat pesanan.");
-
-      const orderId = laravelResult.data.order_id;
-
-      // Simulasi TripGo Pay (Tanpa Midtrans)
+      // Simulasi TripGo Pay
       if (method === "tripgo_pay") {
         setPaymentData({ payment_type: "tripgo_pay", order_id: orderId });
         return;
       }
 
-      // 2. Request Token ke API Route Next.js (Internal)
+      // 2. Request Token ke API Route Next.js (/tokenizer)
+      // Gunakan fetch biasa untuk route internal Next.js
       const resMidtrans = await fetch("/tokenizer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,15 +79,20 @@ function PembayaranContent() {
         }),
       });
       
+      if (!resMidtrans.ok) {
+        const errorText = await resMidtrans.text();
+        throw new Error(`Midtrans Error: ${errorText}`);
+      }
+
       const result = await resMidtrans.json();
       setPaymentData({ ...result, order_id: orderId, store: subMethod });
 
-      // Jika ada redirect URL (seperti Gopay/ShopeePay/Kredivo)
       if (result.redirect_url) {
-        setTimeout(() => { window.location.href = result.redirect_url; }, 1000);
+        window.location.href = result.redirect_url;
       }
     } catch (err: any) {
-      alert(err.message || "Terjadi kesalahan sistem.");
+      console.error("Payment Error:", err);
+      alert(err.response?.data?.message || err.message || "Gagal memproses pembayaran.");
     } finally {
       setLoadingMethod(null);
     }
@@ -125,17 +101,17 @@ function PembayaranContent() {
   const checkPaymentStatus = async (orderId: string) => {
     setIsChecking(true);
     try {
-      const response = await fetch(`${API_URL}/bookings/status/${orderId}`);
-      const result = await response.json();
+      const response = await axiosClient.get(`/bookings/status/${orderId}`);
+      const result = response.data;
       
-      // Menangani status Midtrans (settlement/success)
-      if (result.status === "pending") {
-        alert("Pembayaran belum diterima. Mohon selesaikan transaksi anda.");
-      } else if (["settlement", "success", "capture"].includes(result.status)) {
+      const status = result.status?.toLowerCase();
+      if (["settlement", "success", "capture"].includes(status)) {
         alert("Pembayaran berhasil dikonfirmasi!");
         router.push(`/tiket-saya/${orderId}`);
+      } else if (status === "pending") {
+        alert("Pembayaran belum diterima. Mohon selesaikan transaksi anda.");
       } else {
-        alert(`Status pembayaran: ${result.status}`);
+        alert(`Status: ${status}`);
       }
     } catch (err) {
       alert("Gagal memeriksa status ke server.");
@@ -300,7 +276,7 @@ export default function PembayaranPage() {
     <Suspense fallback={
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-[#FBFBFB]">
         <Loader2 className="animate-spin text-blue-900" size={40} />
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest tracking-widest">Menyiapkan Gerbang Pembayaran...</p>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Menyiapkan Gerbang Pembayaran...</p>
       </div>
     }>
       <PembayaranContent />
