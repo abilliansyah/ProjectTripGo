@@ -65,24 +65,23 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
-  // Format Tanggal yang lebih robust (mengatasi masalah strip '-')
+  // FORMAT TANGGAL: Memastikan mendukung format YYYY-MM-DD
   const formatDate = (dateString: any) => {
     if (!dateString) return "BELUM SET";
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "TGL ERROR";
-      return date.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      }).toUpperCase();
-    } catch (e) {
-      return "-";
-    }
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "TGL TIDAK VALID";
+    
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }).toUpperCase();
   };
 
   const handleItemClick = (item: any, isExpired: boolean) => {
+    // Jika hangus, hentikan eksekusi klik
     if (isExpired) return;
+
     const status = item.status?.toLowerCase();
     if (status === 'pending') {
       const query = new URLSearchParams({
@@ -101,9 +100,9 @@ export default function HistoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 pt-28 pb-20 px-4 font-poppins">
+    <main className="min-h-screen bg-gray-50 pt-28 pb-20 px-4 font-poppins text-left">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl text-blue-900 mb-8 font-black italic uppercase tracking-tighter">
+        <h1 className="text-2xl text-blue-900 mb-8 font-black italic uppercase tracking-tighter text-left">
           Riwayat <span className="text-blue-600">Transaksi</span>
         </h1>
 
@@ -124,16 +123,18 @@ export default function HistoryPage() {
                 <div 
                   key={item.order_id || item.id} 
                   onClick={() => handleItemClick(item, isHangus)}
+                  // Menambahkan cursor-not-allowed jika hangus
                   className={`bg-white p-8 rounded-[2.5rem] border transition-all relative overflow-hidden shadow-2xl ${
-                    isHangus ? 'grayscale opacity-60 border-gray-200' : 
-                    isPending ? 'border-orange-200 shadow-orange-100/50 hover:border-orange-400' :
-                    'border-blue-100 shadow-blue-100/50 hover:border-blue-500'
-                  } cursor-pointer group`}
+                    isHangus 
+                      ? 'grayscale opacity-60 border-gray-200 cursor-not-allowed' 
+                      : isPending 
+                        ? 'border-orange-200 shadow-orange-100/50 hover:border-orange-400 cursor-pointer' 
+                        : 'border-blue-100 shadow-blue-100/50 hover:border-blue-500 cursor-pointer'
+                  } group`}
                 >
-                  {/* HEADER: ORDER ID & STATUS */}
                   <div className="flex justify-between items-start mb-8">
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1 text-left">Order ID</p>
+                    <div className="text-left">
+                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Order ID</p>
                       <h3 className={`font-black tracking-tight italic uppercase text-xl ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
                         {item.order_id}
                       </h3>
@@ -160,24 +161,23 @@ export default function HistoryPage() {
                         <div className="flex flex-col text-left">
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Tanggal</span>
                             <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                                {item.schedule?.departure_date ? formatDate(item.schedule.departure_date) : "-"}
+                                {formatDate(item.schedule?.departure_date || item.schedule?.date)}
                             </span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4 border-l border-gray-200/50 pl-6 flex-1">
+                    <div className="flex items-center gap-4 border-l border-gray-200/50 pl-6 flex-1 text-left">
                         <div className={`p-3 rounded-2xl ${isPending ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
                            <Clock size={18} />
                         </div>
                         <div className="flex flex-col text-left">
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Waktu</span>
                             <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                                {item.schedule?.departure_time || "--:--"} WIB
+                                {item.schedule?.departure_time || item.schedule?.time || "--:--"} WIB
                             </span>
                         </div>
                     </div>
                   </div>
 
-                  {/* FOOTER: RUTE & TOTAL */}
                   <div className={`flex justify-between items-end border-t pt-8 ${isPending ? 'border-orange-100' : 'border-blue-100'}`}>
                     <div className="text-left">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
