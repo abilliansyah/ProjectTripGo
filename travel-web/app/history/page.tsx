@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import axiosClient from "@/utils/axiosClient"; // Gunakan axiosClient yang sama dengan Reservasi
+import axiosClient from "@/utils/axiosClient";
 import { Ticket, ArrowRight, Loader2 } from "lucide-react";
 
 export default function HistoryPage() {
@@ -13,17 +13,12 @@ export default function HistoryPage() {
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      // Menggunakan axiosClient agar token otomatis terlampir di header Authorization
       const response = await axiosClient.get("/my-history");
-      
-      // Menangani struktur data Laravel (result.data atau result.data.data)
       const result = response.data.data || response.data;
       setHistory(Array.isArray(result) ? result : []);
-      
     } catch (err: any) {
       console.error("Gagal mengambil history:", err);
       if (err.response?.status === 401) {
-        // Jika token tidak valid, arahkan ke login
         router.push('/login');
       }
     } finally {
@@ -34,6 +29,29 @@ export default function HistoryPage() {
   useEffect(() => {
     fetchHistory();
   }, []);
+
+  // LOGIKA NAVIGASI: Cek status sebelum mengarahkan
+  const handleItemClick = (item: any) => {
+    const isPending = item.status?.toLowerCase() === 'pending';
+
+    if (isPending) {
+      // Jika pending, arahkan kembali ke pembayaran dengan parameter yang dibutuhkan
+      const query = new URLSearchParams({
+        order_id: item.order_id,
+        price: (item.total_amount / item.seat_count).toString(),
+        seat_count: item.seat_count.toString(),
+        customer_name: item.customer_name || "",
+        customer_email: item.customer_email || "",
+        customer_phone: item.customer_phone || "",
+        schedule_id: item.schedule_id?.toString() || ""
+      }).toString();
+      
+      router.push(`/pembayaran?${query}`);
+    } else {
+      // Jika sukses/settlement, baru arahkan ke tiket
+      router.push(`/tiket-saya/${item.order_id}`);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 pt-28 pb-20 px-4 font-poppins">
@@ -51,7 +69,7 @@ export default function HistoryPage() {
             history.map((item: any) => (
               <div 
                 key={item.order_id || item.id} 
-                onClick={() => router.push(`/tiket-saya/${item.order_id}`)}
+                onClick={() => handleItemClick(item)} // Menggunakan logika pengecekan status
                 className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-blue-500 transition cursor-pointer group"
               >
                 <div className="flex justify-between items-start mb-5">

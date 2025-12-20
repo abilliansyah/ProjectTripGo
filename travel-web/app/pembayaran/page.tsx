@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import axiosClient from "@/utils/axiosClient"; // Gunakan axiosClient Anda
+import axiosClient from "@/utils/axiosClient";
 import { 
   ChevronDown, Copy, CheckCircle2, Wallet, Building2, 
   Store, ArrowLeft, Zap, Loader2
@@ -29,7 +29,9 @@ function PembayaranContent() {
   const [loadingMethod, setLoadingMethod] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
 
+  // Ambil data dari URL
   const data = {
+    orderId: searchParams.get("order_id"), // Digunakan jika lanjut bayar dari history
     scheduleId: searchParams.get("schedule_id"), 
     price: Number(searchParams.get("price") || 0),
     seatCount: parseInt(searchParams.get("seat_count") || "1"),
@@ -40,42 +42,49 @@ function PembayaranContent() {
   };
 
   const handleCharge = async (method: string, subMethod?: string) => {
-    if (!data.scheduleId) return alert("ID Jadwal tidak ditemukan.");
     setLoadingMethod(subMethod || method);
     
     try {
-      // 1. Simpan pesanan ke Laravel melalui axiosClient (Otomatis membawa Token)
-      const resLaravel = await axiosClient.post("/bookings", {
-        user_id: data.userId,
-        schedule_id: data.scheduleId,
-        customer_name: data.nama,
-        customer_email: data.email,
-        customer_phone: data.telepon,
-        seat_count: data.seatCount, 
-        total_price: data.price * data.seatCount,
-        payment_method: subMethod || method 
-      });
+      let currentOrderId = data.orderId;
 
-      const orderId = resLaravel.data.data?.order_id || resLaravel.data.order_id;
+      // 1. Logika: Jika tidak ada order_id, buat booking baru. Jika ada, lewati tahap ini.
+      if (!currentOrderId) {
+        if (!data.scheduleId) throw new Error("ID Jadwal tidak ditemukan.");
+        
+        const resLaravel = await axiosClient.post("/bookings", {
+          user_id: data.userId,
+          schedule_id: data.scheduleId,
+          customer_name: data.nama,
+          customer_email: data.email,
+          customer_phone: data.telepon,
+          seat_count: data.seatCount, 
+          total_price: data.price * data.seatCount,
+          payment_method: subMethod || method 
+        });
+        currentOrderId = resLaravel.data.data?.order_id || resLaravel.data.order_id;
+      }
 
       // Simulasi TripGo Pay
       if (method === "tripgo_pay") {
-        setPaymentData({ payment_type: "tripgo_pay", order_id: orderId });
+        setPaymentData({ payment_type: "tripgo_pay", order_id: currentOrderId });
         return;
       }
 
-      // 2. Request Token ke API Route Next.js (/tokenizer)
-      // Gunakan fetch biasa untuk route internal Next.js
+      // 2. Request Token ke API Route Next.js (/api/tokenizer)
       const resMidtrans = await fetch("/api/tokenizer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: orderId, 
+          id: currentOrderId, 
           method, 
           bank: subMethod, 
           price: data.price, 
           quantity: data.seatCount,
-          customerDetails: { first_name: data.nama, email: data.email, phone: data.telepon }
+          customerDetails: { 
+            first_name: data.nama, 
+            email: data.email, 
+            phone: data.telepon 
+          }
         }),
       });
       
@@ -85,8 +94,9 @@ function PembayaranContent() {
       }
 
       const result = await resMidtrans.json();
-      setPaymentData({ ...result, order_id: orderId, store: subMethod });
+      setPaymentData({ ...result, order_id: currentOrderId, store: subMethod });
 
+      // Jika metode membutuhkan redirect (Gopay/ShopeePay)
       if (result.redirect_url) {
         window.location.href = result.redirect_url;
       }
@@ -201,6 +211,7 @@ function PembayaranContent() {
             </div>
           </>
         ) : (
+          /* Tampilan Instruksi Pembayaran / Sukses */
           <div className={`p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] text-white transition-all animate-in zoom-in-95 duration-300 ${paymentData.payment_type === "tripgo_pay" ? "bg-green-600" : "bg-blue-800"}`}>
             <div className="flex justify-between items-center border-b border-white/10 pb-6 mb-8">
               <div className="flex items-center gap-2">
