@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import axiosClient from "@/utils/axiosClient";
 import { Clock, Calendar, MapPin, ArrowRight, Loader2 } from "lucide-react";
 
-// Komponen untuk menghitung waktu mundur pembayaran (2 jam)
 const CountdownTimer = ({ createdAt, onExpire }: { createdAt: string; onExpire: () => void }) => {
   const [timeLeft, setTimeLeft] = useState("");
   const [isExpired, setIsExpired] = useState(false);
@@ -49,12 +48,12 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Ambil data history dari API
   const fetchHistory = async () => {
     setLoading(true);
     try {
       const response = await axiosClient.get("/my-history");
       const result = response.data.data || response.data;
+      console.log("Raw Data History:", result); // CEK DI KONSOL BROWSER
       setHistory(Array.isArray(result) ? result : []);
     } catch (err: any) {
       console.error("Gagal mengambil history:", err);
@@ -67,44 +66,38 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
-  // FUNGSI UTAMA: Memecah "2025-12-18 08:00:00" secara manual agar tidak undefined
-  const getScheduleData = (departureTime: string) => {
-    if (!departureTime || typeof departureTime !== 'string') {
-      return { date: "-", time: "--:--" };
-    }
+  // FUNGSI SUPER AMAN
+  const formatTicketDate = (item: any) => {
+    // Coba ambil dari schedule, jika tidak ada cari di level root item
+    const rawDT = item.schedule?.departure_time || item.departure_time;
+    
+    if (!rawDT || typeof rawDT !== 'string') return { d: "-", t: "--:--" };
 
     try {
-      // Pisahkan tanggal dan waktu berdasarkan spasi
-      const parts = departureTime.split(" ");
+      // Split "2025-12-18 08:00:00"
+      const parts = rawDT.trim().split(/\s+/);
       const datePart = parts[0]; // "2025-12-18"
       const timePart = parts[1]; // "08:00:00"
 
-      // Proses Tanggal (18 DES 2025)
-      const dateSubParts = datePart.split("-"); 
-      const year = dateSubParts[0];
-      const monthIndex = parseInt(dateSubParts[1]) - 1;
-      const day = dateSubParts[2];
+      if (!datePart) return { d: "-", t: "--:--" };
 
-      const months = [
-        "JAN", "FEB", "MAR", "APR", "MEI", "JUN", 
-        "JUL", "AGU", "SEP", "OKT", "NOV", "DES"
-      ];
+      const ymd = datePart.split("-");
+      if (ymd.length !== 3) return { d: datePart, t: timePart?.substring(0, 5) || "--:--" };
+
+      const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
+      const mIdx = parseInt(ymd[1]) - 1;
       
-      const formattedDate = `${day} ${months[monthIndex]} ${year}`;
-
-      // Proses Waktu (08:00)
-      const formattedTime = timePart ? timePart.substring(0, 5) : "--:--";
-
-      return { date: formattedDate, time: formattedTime };
+      return {
+        d: `${ymd[2]} ${months[mIdx] || ymd[1]} ${ymd[0]}`,
+        t: timePart ? timePart.substring(0, 5) : "--:--"
+      };
     } catch (e) {
-      return { date: "-", time: "--:--" };
+      return { d: "-", t: "--:--" };
     }
   };
 
   const handleItemClick = (item: any, isExpired: boolean) => {
-    // Kunci klik jika tiket hangus
     if (isExpired) return;
-
     const status = item.status?.toLowerCase();
     if (status === 'pending') {
       const query = new URLSearchParams({
@@ -122,7 +115,7 @@ export default function HistoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 pt-28 pb-20 px-4 font-poppins text-left">
+    <main className="min-h-screen bg-gray-50 pt-28 pb-20 px-4 font-poppins">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl text-blue-900 mb-8 font-black italic uppercase tracking-tighter">
           Riwayat <span className="text-blue-600">Transaksi</span>
@@ -136,97 +129,70 @@ export default function HistoryPage() {
               const status = item.status?.toLowerCase();
               const startTime = new Date(item.created_at).getTime();
               const isTimeOut = (new Date().getTime() - startTime) > (2 * 60 * 60 * 1000);
-              
               const isSuccess = ['settlement', 'success', 'paid', 'capture'].includes(status);
               const isPending = status === 'pending' && !isTimeOut;
               const isHangus = (status === 'pending' && isTimeOut) || ['expire', 'cancel', 'deny'].includes(status);
 
-              // Ambil data tanggal & waktu hasil pecah manual
-              const { date, time } = getScheduleData(item.schedule?.departure_time);
+              // Panggil fungsi format baru
+              const dateTime = formatTicketDate(item);
 
               return (
                 <div 
                   key={item.order_id} 
                   onClick={() => handleItemClick(item, isHangus)}
                   className={`bg-white p-8 rounded-[2.5rem] border transition-all relative overflow-hidden shadow-2xl ${
-                    isHangus 
-                      ? 'grayscale opacity-60 border-gray-200 cursor-not-allowed' 
-                      : isPending 
-                        ? 'border-orange-200 shadow-orange-100/50 hover:border-orange-400 cursor-pointer' 
-                        : 'border-blue-100 shadow-blue-100/50 hover:border-blue-500 cursor-pointer'
-                  } group`}
+                    isHangus ? 'grayscale opacity-60 border-gray-200 cursor-not-allowed' : 'cursor-pointer hover:border-blue-500'
+                  }`}
                 >
-                  {/* HEADER AREA */}
                   <div className="flex justify-between items-start mb-8">
                     <div className="text-left">
-                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Order ID</p>
-                      <h3 className={`font-black tracking-tight italic uppercase text-xl ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                        {item.order_id}
-                      </h3>
+                      <p className="text-[10px] text-gray-400 font-black uppercase mb-1">Order ID</p>
+                      <h3 className="font-black italic uppercase text-xl text-blue-900">{item.order_id}</h3>
                     </div>
-                    
                     <div className="flex flex-col items-center">
-                        <span className={`px-6 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest italic border text-center min-w-[110px] ${
-                        isHangus ? 'bg-gray-100 text-gray-400 border-gray-200' :
-                        isSuccess ? 'bg-green-50 text-green-600 border-green-200' :
-                        'bg-orange-50 text-orange-600 border-orange-200'
+                        <span className={`px-6 py-2 rounded-2xl text-[11px] font-black border ${
+                           isHangus ? 'bg-gray-100 text-gray-400' : isSuccess ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'
                         }`}>
-                        {isHangus ? 'HANGUS' : (isSuccess ? 'SUCCESS' : 'PENDING')}
+                           {isHangus ? 'HANGUS' : (isSuccess ? 'SUCCESS' : 'PENDING')}
                         </span>
                         {isPending && <CountdownTimer createdAt={item.created_at} onExpire={() => fetchHistory()} />}
                     </div>
                   </div>
 
-                  {/* INFO JADWAL AREA */}
-                  <div className={`flex gap-6 mb-8 p-6 rounded-3xl border ${isPending ? 'bg-orange-50/50 border-orange-100' : 'bg-blue-50/50 border-blue-100'}`}>
+                  <div className="flex gap-6 mb-8 p-6 rounded-3xl border bg-blue-50/50 border-blue-100">
                     <div className="flex items-center gap-4 flex-1">
-                        <div className={`p-3 rounded-2xl ${isPending ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-                           <Calendar size={18} />
-                        </div>
+                        <Calendar size={18} className="text-blue-600" />
                         <div className="flex flex-col text-left">
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Tanggal</span>
-                            <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                                {date}
-                            </span>
+                            <span className="text-[10px] font-black text-blue-400 uppercase">Tanggal</span>
+                            <span className="text-sm font-black text-blue-900">{dateTime.d}</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4 border-l border-gray-200/50 pl-6 flex-1 text-left">
-                        <div className={`p-3 rounded-2xl ${isPending ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-                           <Clock size={18} />
-                        </div>
+                    <div className="flex items-center gap-4 border-l border-gray-200 pl-6 flex-1">
+                        <Clock size={18} className="text-blue-600" />
                         <div className="flex flex-col text-left">
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Waktu</span>
-                            <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                                {time} WIB
-                            </span>
+                            <span className="text-[10px] font-black text-blue-400 uppercase">Waktu</span>
+                            <span className="text-sm font-black text-blue-900">{dateTime.t} WIB</span>
                         </div>
                     </div>
                   </div>
 
-                  {/* FOOTER AREA */}
-                  <div className={`flex justify-between items-end border-t pt-8 ${isPending ? 'border-orange-100' : 'border-blue-100'}`}>
+                  <div className="flex justify-between items-end border-t pt-8">
                     <div className="text-left">
-                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                        <MapPin size={12} /> Rute Perjalanan
-                      </p>
-                      <div className={`text-lg font-black flex items-center gap-4 italic uppercase ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                        {item.schedule?.origin} <ArrowRight size={18} className={isPending ? 'text-orange-500' : 'text-blue-500'} /> {item.schedule?.destination}
+                      <p className="text-[10px] text-gray-400 font-black uppercase mb-3 flex items-center gap-2"><MapPin size={12} /> Rute</p>
+                      <div className="text-lg font-black italic uppercase text-blue-900 flex items-center gap-2">
+                        {item.schedule?.origin || item.origin} <ArrowRight size={18} /> {item.schedule?.destination || item.destination}
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Total Bayar</p>
-                      <p className={`text-2xl font-black italic tracking-tighter ${isHangus ? 'text-gray-400' : isPending ? 'text-orange-600' : 'text-blue-600'}`}>
-                        IDR {Number(item.total_amount || 0).toLocaleString('id-ID')}
-                      </p>
+                      <p className="text-[10px] text-gray-400 font-black uppercase mb-1">Total</p>
+                      <p className="text-2xl font-black italic text-blue-600">IDR {Number(item.total_amount || 0).toLocaleString('id-ID')}</p>
                     </div>
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="text-center py-40 italic font-black text-gray-200 uppercase tracking-[0.5em] text-sm bg-white rounded-[3rem]">
-               KOSONG
-            </div>
+            <div className="text-center py-40 font-black text-gray-300 uppercase">KOSONG</div>
           )}
         </div>
       </div>
