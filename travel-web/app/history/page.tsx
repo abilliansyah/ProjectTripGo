@@ -65,8 +65,48 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
+  // FUNGSI PERBAIKAN: Memastikan string datetime diproses dengan aman
+  const getScheduleData = (departureTime: string) => {
+    if (!departureTime) return { date: "-", time: "--:--" };
+
+    try {
+      // Mengganti spasi dengan 'T' agar kompatibel dengan standar ISO (Safari & Chrome aman)
+      const isoString = departureTime.replace(" ", "T");
+      const dateObj = new Date(isoString);
+
+      if (isNaN(dateObj.getTime())) {
+        // Fallback: Jika masih gagal, gunakan pemotongan string manual (hardcode)
+        // departureTime: "2025-12-18 08:00:00"
+        const parts = departureTime.split(" ");
+        const datePart = parts[0]; // "2025-12-18"
+        const timePart = parts[1]?.substring(0, 5) || "--:--"; // "08:00"
+
+        const [y, m, d] = datePart.split("-");
+        const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
+        const formattedDate = `${d} ${months[parseInt(m) - 1]} ${y}`;
+
+        return { date: formattedDate, time: timePart };
+      }
+
+      const formattedDate = dateObj.toLocaleDateString('id-ID', { 
+        day: 'numeric', 
+        month: 'short', 
+        year: 'numeric' 
+      }).toUpperCase();
+
+      const formattedTime = dateObj.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).replace('.', ':');
+
+      return { date: formattedDate, time: formattedTime };
+    } catch (e) {
+      return { date: "-", time: "--:--" };
+    }
+  };
+
   const handleItemClick = (item: any, isExpired: boolean) => {
-    // 1. CEK STATUS EXPIRED: Jika true, fungsi berhenti di sini (tidak bisa diklik)
     if (isExpired) return;
 
     const status = item.status?.toLowerCase();
@@ -86,8 +126,8 @@ export default function HistoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 pt-28 pb-20 px-4 font-poppins">
-      <div className="max-w-2xl mx-auto text-left">
+    <main className="min-h-screen bg-gray-50 pt-28 pb-20 px-4 font-poppins text-left">
+      <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl text-blue-900 mb-8 font-black italic uppercase tracking-tighter">
           Riwayat <span className="text-blue-600">Transaksi</span>
         </h1>
@@ -103,15 +143,15 @@ export default function HistoryPage() {
               
               const isSuccess = ['settlement', 'success', 'paid', 'capture'].includes(status);
               const isPending = status === 'pending' && !isTimeOut;
-              
-              // DEFINISI HANGUS: Status pending yang lewat waktu, atau status expire/cancel
               const isHangus = (status === 'pending' && isTimeOut) || ['expire', 'cancel', 'deny'].includes(status);
+
+              // Ambil data tanggal dan waktu menggunakan fungsi baru
+              const { date, time } = getScheduleData(item.schedule?.departure_time);
 
               return (
                 <div 
                   key={item.order_id} 
                   onClick={() => handleItemClick(item, isHangus)}
-                  // 2. KURSOR: Menggunakan cursor-not-allowed jika hangus
                   className={`bg-white p-8 rounded-[2.5rem] border transition-all relative overflow-hidden shadow-2xl ${
                     isHangus 
                       ? 'grayscale opacity-60 border-gray-200 cursor-not-allowed' 
@@ -140,7 +180,6 @@ export default function HistoryPage() {
                     </div>
                   </div>
 
-                  {/* JADWAL BOX */}
                   <div className={`flex gap-6 mb-8 p-6 rounded-3xl border ${isPending ? 'bg-orange-50/50 border-orange-100' : 'bg-blue-50/50 border-blue-100'}`}>
                     <div className="flex items-center gap-4 flex-1">
                         <div className={`p-3 rounded-2xl ${isPending ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -149,8 +188,7 @@ export default function HistoryPage() {
                         <div className="flex flex-col text-left">
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Tanggal</span>
                             <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                                {/* MENGGUNAKAN LOGIKA TIKET SAYA */}
-                                {item.schedule?.departure_time ? new Date(item.schedule.departure_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase() : "-"}
+                                {date}
                             </span>
                         </div>
                     </div>
@@ -161,8 +199,7 @@ export default function HistoryPage() {
                         <div className="flex flex-col text-left">
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Waktu</span>
                             <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                                {/* MENGGUNAKAN LOGIKA TIKET SAYA */}
-                                {item.schedule?.departure_time?.substring(11, 16) || "00:00"} WIB
+                                {time} WIB
                             </span>
                         </div>
                     </div>
@@ -188,7 +225,7 @@ export default function HistoryPage() {
               );
             })
           ) : (
-            <div className="text-center py-40 bg-white rounded-[3rem] italic font-black text-gray-200 uppercase tracking-[0.5em] text-sm">
+            <div className="text-center py-40 italic font-black text-gray-200 uppercase tracking-[0.5em] text-sm">
                KOSONG
             </div>
           )}
