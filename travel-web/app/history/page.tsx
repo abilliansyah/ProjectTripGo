@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import axiosClient from "@/utils/axiosClient";
 import { Clock, Calendar, MapPin, ArrowRight, Loader2 } from "lucide-react";
 
+// Komponen untuk menghitung waktu mundur pembayaran (2 jam)
 const CountdownTimer = ({ createdAt, onExpire }: { createdAt: string; onExpire: () => void }) => {
   const [timeLeft, setTimeLeft] = useState("");
   const [isExpired, setIsExpired] = useState(false);
@@ -48,6 +49,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Ambil data history dari API
   const fetchHistory = async () => {
     setLoading(true);
     try {
@@ -65,40 +67,33 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
-  // FUNGSI PERBAIKAN: Memastikan string datetime diproses dengan aman
+  // FUNGSI UTAMA: Memecah "2025-12-18 08:00:00" secara manual agar tidak undefined
   const getScheduleData = (departureTime: string) => {
-    if (!departureTime) return { date: "-", time: "--:--" };
+    if (!departureTime || typeof departureTime !== 'string') {
+      return { date: "-", time: "--:--" };
+    }
 
     try {
-      // Mengganti spasi dengan 'T' agar kompatibel dengan standar ISO (Safari & Chrome aman)
-      const isoString = departureTime.replace(" ", "T");
-      const dateObj = new Date(isoString);
+      // Pisahkan tanggal dan waktu berdasarkan spasi
+      const parts = departureTime.split(" ");
+      const datePart = parts[0]; // "2025-12-18"
+      const timePart = parts[1]; // "08:00:00"
 
-      if (isNaN(dateObj.getTime())) {
-        // Fallback: Jika masih gagal, gunakan pemotongan string manual (hardcode)
-        // departureTime: "2025-12-18 08:00:00"
-        const parts = departureTime.split(" ");
-        const datePart = parts[0]; // "2025-12-18"
-        const timePart = parts[1]?.substring(0, 5) || "--:--"; // "08:00"
+      // Proses Tanggal (18 DES 2025)
+      const dateSubParts = datePart.split("-"); 
+      const year = dateSubParts[0];
+      const monthIndex = parseInt(dateSubParts[1]) - 1;
+      const day = dateSubParts[2];
 
-        const [y, m, d] = datePart.split("-");
-        const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
-        const formattedDate = `${d} ${months[parseInt(m) - 1]} ${y}`;
+      const months = [
+        "JAN", "FEB", "MAR", "APR", "MEI", "JUN", 
+        "JUL", "AGU", "SEP", "OKT", "NOV", "DES"
+      ];
+      
+      const formattedDate = `${day} ${months[monthIndex]} ${year}`;
 
-        return { date: formattedDate, time: timePart };
-      }
-
-      const formattedDate = dateObj.toLocaleDateString('id-ID', { 
-        day: 'numeric', 
-        month: 'short', 
-        year: 'numeric' 
-      }).toUpperCase();
-
-      const formattedTime = dateObj.toLocaleTimeString('id-ID', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }).replace('.', ':');
+      // Proses Waktu (08:00)
+      const formattedTime = timePart ? timePart.substring(0, 5) : "--:--";
 
       return { date: formattedDate, time: formattedTime };
     } catch (e) {
@@ -107,6 +102,7 @@ export default function HistoryPage() {
   };
 
   const handleItemClick = (item: any, isExpired: boolean) => {
+    // Kunci klik jika tiket hangus
     if (isExpired) return;
 
     const status = item.status?.toLowerCase();
@@ -145,7 +141,7 @@ export default function HistoryPage() {
               const isPending = status === 'pending' && !isTimeOut;
               const isHangus = (status === 'pending' && isTimeOut) || ['expire', 'cancel', 'deny'].includes(status);
 
-              // Ambil data tanggal dan waktu menggunakan fungsi baru
+              // Ambil data tanggal & waktu hasil pecah manual
               const { date, time } = getScheduleData(item.schedule?.departure_time);
 
               return (
@@ -160,6 +156,7 @@ export default function HistoryPage() {
                         : 'border-blue-100 shadow-blue-100/50 hover:border-blue-500 cursor-pointer'
                   } group`}
                 >
+                  {/* HEADER AREA */}
                   <div className="flex justify-between items-start mb-8">
                     <div className="text-left">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Order ID</p>
@@ -180,6 +177,7 @@ export default function HistoryPage() {
                     </div>
                   </div>
 
+                  {/* INFO JADWAL AREA */}
                   <div className={`flex gap-6 mb-8 p-6 rounded-3xl border ${isPending ? 'bg-orange-50/50 border-orange-100' : 'bg-blue-50/50 border-blue-100'}`}>
                     <div className="flex items-center gap-4 flex-1">
                         <div className={`p-3 rounded-2xl ${isPending ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -205,6 +203,7 @@ export default function HistoryPage() {
                     </div>
                   </div>
 
+                  {/* FOOTER AREA */}
                   <div className={`flex justify-between items-end border-t pt-8 ${isPending ? 'border-orange-100' : 'border-blue-100'}`}>
                     <div className="text-left">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
@@ -225,7 +224,7 @@ export default function HistoryPage() {
               );
             })
           ) : (
-            <div className="text-center py-40 italic font-black text-gray-200 uppercase tracking-[0.5em] text-sm">
+            <div className="text-center py-40 italic font-black text-gray-200 uppercase tracking-[0.5em] text-sm bg-white rounded-[3rem]">
                KOSONG
             </div>
           )}
