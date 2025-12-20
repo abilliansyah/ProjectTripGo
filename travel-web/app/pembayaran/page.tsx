@@ -66,7 +66,7 @@ function PembayaranContent() {
 
       // 2. Request Token ke API Route Next.js (/tokenizer)
       // Gunakan fetch biasa untuk route internal Next.js
-      const resMidtrans = await fetch("/tokenizer", {
+      const resMidtrans = await fetch("/api/tokenizer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
