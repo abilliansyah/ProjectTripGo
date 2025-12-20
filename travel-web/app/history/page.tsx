@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axiosClient from "@/utils/axiosClient";
-import { Ticket, ArrowRight, Loader2, Clock, Calendar, MapPin } from "lucide-react";
+import { Clock, Calendar, MapPin, ArrowRight, Loader2 } from "lucide-react";
 
 const CountdownTimer = ({ createdAt, onExpire }: { createdAt: string; onExpire: () => void }) => {
   const [timeLeft, setTimeLeft] = useState("");
@@ -65,34 +65,32 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
-  // FUNGSI BARU: Memecah departure_time (YYYY-MM-DD HH:mm:ss) menjadi Tanggal & Jam
-  const parseScheduleDateTime = (dateTimeString: string) => {
+  // FUNGSI KRUSIAL: Memecah data "2025-12-18 08:00:00" menjadi tgl & jam
+  const formatDateTime = (dateTimeString: any) => {
     if (!dateTimeString) return { date: "-", time: "--:--" };
     
-    try {
-      const dt = new Date(dateTimeString);
-      if (isNaN(dt.getTime())) return { date: "-", time: "--:--" };
+    const dt = new Date(dateTimeString);
+    if (isNaN(dt.getTime())) return { date: "-", time: "--:--" };
 
-      const formattedDate = dt.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      }).toUpperCase();
+    const date = dt.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }).toUpperCase();
 
-      const formattedTime = dt.toLocaleTimeString('id-ID', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }).replace('.', ':');
+    const time = dt.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).replace('.', ':');
 
-      return { date: formattedDate, time: formattedTime };
-    } catch (e) {
-      return { date: "-", time: "--:--" };
-    }
+    return { date, time };
   };
 
   const handleItemClick = (item: any, isExpired: boolean) => {
+    // Kursor not-allowed di UI, dan logika di sini menghentikan klik
     if (isExpired) return;
+
     const status = item.status?.toLowerCase();
     if (status === 'pending') {
       const query = new URLSearchParams({
@@ -129,12 +127,12 @@ export default function HistoryPage() {
               const isPending = status === 'pending' && !isTimeOut;
               const isHangus = (status === 'pending' && isTimeOut) || ['expire', 'cancel', 'deny'].includes(status);
 
-              // Ambil Tanggal & Waktu dari satu field departure_time
-              const { date, time } = parseScheduleDateTime(item.schedule?.departure_time);
+              // Ambil data dari kolom departure_time
+              const scheduleInfo = formatDateTime(item.schedule?.departure_time);
 
               return (
                 <div 
-                  key={item.order_id || item.id} 
+                  key={item.order_id} 
                   onClick={() => handleItemClick(item, isHangus)}
                   className={`bg-white p-8 rounded-[2.5rem] border transition-all relative overflow-hidden shadow-2xl ${
                     isHangus 
@@ -144,7 +142,6 @@ export default function HistoryPage() {
                         : 'border-blue-100 shadow-blue-100/50 hover:border-blue-500 cursor-pointer'
                   } group`}
                 >
-                  {/* HEADER */}
                   <div className="flex justify-between items-start mb-8">
                     <div className="text-left">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Order ID</p>
@@ -165,7 +162,6 @@ export default function HistoryPage() {
                     </div>
                   </div>
 
-                  {/* JADWAL BOX */}
                   <div className={`flex gap-6 mb-8 p-6 rounded-3xl border ${isPending ? 'bg-orange-50/50 border-orange-100' : 'bg-blue-50/50 border-blue-100'}`}>
                     <div className="flex items-center gap-4 flex-1">
                         <div className={`p-3 rounded-2xl ${isPending ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -174,7 +170,7 @@ export default function HistoryPage() {
                         <div className="flex flex-col text-left">
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Tanggal</span>
                             <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                                {date}
+                                {scheduleInfo.date}
                             </span>
                         </div>
                     </div>
@@ -185,13 +181,12 @@ export default function HistoryPage() {
                         <div className="flex flex-col text-left">
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Waktu</span>
                             <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
-                                {time} WIB
+                                {scheduleInfo.time} WIB
                             </span>
                         </div>
                     </div>
                   </div>
 
-                  {/* FOOTER */}
                   <div className={`flex justify-between items-end border-t pt-8 ${isPending ? 'border-orange-100' : 'border-blue-100'}`}>
                     <div className="text-left">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
