@@ -37,8 +37,8 @@ const CountdownTimer = ({ createdAt, onExpire }: { createdAt: string; onExpire: 
   }, [createdAt, isExpired, onExpire]);
 
   return (
-    <div className="text-[12px] font-black text-red-600 tracking-tighter flex items-center justify-center gap-1 mt-1">
-       <Clock size={12} /> {timeLeft}
+    <div className="text-[14px] font-black text-red-600 tracking-tighter flex items-center justify-center gap-1 mt-1">
+       <Clock size={14} /> {timeLeft}
     </div>
   );
 };
@@ -65,16 +65,17 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
-  // PERBAIKAN: Fungsi format tanggal yang lebih robust
+  // Format Tanggal yang lebih robust (mengatasi masalah strip '-')
   const formatDate = (dateString: any) => {
-    if (!dateString) return "Tgl Tidak Ada";
+    if (!dateString) return "BELUM SET";
     try {
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "TGL ERROR";
       return date.toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'short',
         year: 'numeric'
-      });
+      }).toUpperCase();
     } catch (e) {
       return "-";
     }
@@ -106,7 +107,7 @@ export default function HistoryPage() {
           Riwayat <span className="text-blue-600">Transaksi</span>
         </h1>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" /></div>
           ) : history.length > 0 ? (
@@ -123,22 +124,26 @@ export default function HistoryPage() {
                 <div 
                   key={item.order_id || item.id} 
                   onClick={() => handleItemClick(item, isHangus)}
-                  className={`bg-white p-6 rounded-[2rem] border transition-all relative overflow-hidden ${
-                    isHangus ? 'grayscale opacity-60 border-gray-200 cursor-not-allowed' : 'border-gray-100 shadow-xl shadow-gray-200/50 hover:border-blue-500 cursor-pointer group'
-                  }`}
+                  className={`bg-white p-8 rounded-[2.5rem] border transition-all relative overflow-hidden shadow-2xl ${
+                    isHangus ? 'grayscale opacity-60 border-gray-200' : 
+                    isPending ? 'border-orange-200 shadow-orange-100/50 hover:border-orange-400' :
+                    'border-blue-100 shadow-blue-100/50 hover:border-blue-500'
+                  } cursor-pointer group`}
                 >
-                  <div className="flex justify-between items-start mb-6">
+                  {/* HEADER: ORDER ID & STATUS */}
+                  <div className="flex justify-between items-start mb-8">
                     <div>
-                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Order ID</p>
-                      <h3 className="text-gray-800 font-black tracking-tight italic uppercase leading-none">{item.order_id}</h3>
+                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1 text-left">Order ID</p>
+                      <h3 className={`font-black tracking-tight italic uppercase text-xl ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
+                        {item.order_id}
+                      </h3>
                     </div>
                     
-                    {/* PERBAIKAN POSISI: Centered Status & Timer */}
-                    <div className="flex flex-col items-center min-w-[100px]">
-                        <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic w-full text-center ${
-                        isHangus ? 'bg-gray-100 text-gray-400' :
-                        isSuccess ? 'bg-green-100 text-green-600' :
-                        'bg-orange-100 text-orange-600' // Orange Pekat untuk Pending
+                    <div className="flex flex-col items-center">
+                        <span className={`px-6 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest italic border ${
+                        isHangus ? 'bg-gray-100 text-gray-400 border-gray-200' :
+                        isSuccess ? 'bg-green-50 text-green-600 border-green-200' :
+                        'bg-orange-50 text-orange-600 border-orange-200'
                         }`}>
                         {isHangus ? 'HANGUS' : (isSuccess ? 'SUCCESS' : 'PENDING')}
                         </span>
@@ -146,40 +151,45 @@ export default function HistoryPage() {
                     </div>
                   </div>
 
-                  {/* Bagian Jadwal */}
-                  <div className="flex gap-6 mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
-                    <div className="flex items-center gap-2 flex-1">
-                        <Calendar size={14} className="text-blue-600" />
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Tanggal</span>
-                            <span className="text-xs font-bold text-blue-900">
+                  {/* JADWAL BOX */}
+                  <div className={`flex gap-6 mb-8 p-6 rounded-3xl border ${isPending ? 'bg-orange-50/50 border-orange-100' : 'bg-blue-50/50 border-blue-100'}`}>
+                    <div className="flex items-center gap-4 flex-1">
+                        <div className={`p-3 rounded-2xl ${isPending ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                           <Calendar size={18} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Tanggal</span>
+                            <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
                                 {item.schedule?.departure_date ? formatDate(item.schedule.departure_date) : "-"}
                             </span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 border-l border-blue-200 pl-6 flex-1">
-                        <Clock size={14} className="text-blue-600" />
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Waktu</span>
-                            <span className="text-xs font-bold text-blue-900 uppercase">
+                    <div className="flex items-center gap-4 border-l border-gray-200/50 pl-6 flex-1">
+                        <div className={`p-3 rounded-2xl ${isPending ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                           <Clock size={18} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${isPending ? 'text-orange-400' : 'text-blue-400'}`}>Waktu</span>
+                            <span className={`text-sm font-black ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
                                 {item.schedule?.departure_time || "--:--"} WIB
                             </span>
                         </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-end border-t border-gray-50 pt-6">
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-1">
-                        <MapPin size={10} /> Rute Perjalanan
+                  {/* FOOTER: RUTE & TOTAL */}
+                  <div className={`flex justify-between items-end border-t pt-8 ${isPending ? 'border-orange-100' : 'border-blue-100'}`}>
+                    <div className="text-left">
+                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                        <MapPin size={12} /> Rute Perjalanan
                       </p>
-                      <div className="text-blue-900 text-sm font-black flex items-center gap-3 italic uppercase">
-                        {item.schedule?.origin} <ArrowRight size={14} className="text-orange-500 animate-pulse" /> {item.schedule?.destination}
+                      <div className={`text-lg font-black flex items-center gap-4 italic uppercase ${isPending ? 'text-orange-900' : 'text-blue-900'}`}>
+                        {item.schedule?.origin} <ArrowRight size={18} className={isPending ? 'text-orange-500' : 'text-blue-500'} /> {item.schedule?.destination}
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Total Bayar</p>
-                      <p className={`text-xl font-black italic tracking-tighter ${isHangus ? 'text-gray-500' : 'text-blue-600'}`}>
+                      <p className={`text-2xl font-black italic tracking-tighter ${isHangus ? 'text-gray-400' : isPending ? 'text-orange-600' : 'text-blue-600'}`}>
                         IDR {Number(item.total_amount || item.total_price || 0).toLocaleString('id-ID')}
                       </p>
                     </div>
@@ -188,8 +198,8 @@ export default function HistoryPage() {
               );
             })
           ) : (
-            <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-gray-100 italic font-black text-gray-200 uppercase tracking-[0.3em] text-xs">
-               Kosong
+            <div className="text-center py-40 bg-white rounded-[3rem] italic font-black text-gray-200 uppercase tracking-[0.5em] text-sm">
+               KOSONG
             </div>
           )}
         </div>
