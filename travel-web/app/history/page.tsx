@@ -53,7 +53,6 @@ export default function HistoryPage() {
     try {
       const response = await axiosClient.get("/my-history");
       const result = response.data.data || response.data;
-      console.log("Raw Data History:", result); // CEK DI KONSOL BROWSER
       setHistory(Array.isArray(result) ? result : []);
     } catch (err: any) {
       console.error("Gagal mengambil history:", err);
@@ -66,31 +65,32 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
-  // FUNGSI SUPER AMAN
+  // FUNGSI PERBAIKAN: Memisahkan Tanggal dan Waktu secara manual
   const formatTicketDate = (item: any) => {
-    // Coba ambil dari schedule, jika tidak ada cari di level root item
     const rawDT = item.schedule?.departure_time || item.departure_time;
     
+    // Default jika data tidak ada
     if (!rawDT || typeof rawDT !== 'string') return { d: "-", t: "--:--" };
 
     try {
-      // Split "2025-12-18 08:00:00"
-      const parts = rawDT.trim().split(/\s+/);
-      const datePart = parts[0]; // "2025-12-18"
-      const timePart = parts[1]; // "08:00:00"
+      // 1. Pecah string berdasarkan spasi untuk memisahkan "2025-12-18" dan "20:00:00"
+      const mainParts = rawDT.trim().split(" ");
+      const dateString = mainParts[0]; // "2025-12-18"
+      const timeString = mainParts[1]; // "20:00:00"
 
-      if (!datePart) return { d: "-", t: "--:--" };
+      // 2. Format Tanggal (Menjadi 18 DES 2025)
+      const ymd = dateString.split("-");
+      let formattedDate = "-";
+      if (ymd.length === 3) {
+        const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
+        const monthIdx = parseInt(ymd[1]) - 1;
+        formattedDate = `${ymd[2]} ${months[monthIdx]} ${ymd[0]}`;
+      }
 
-      const ymd = datePart.split("-");
-      if (ymd.length !== 3) return { d: datePart, t: timePart?.substring(0, 5) || "--:--" };
+      // 3. Format Waktu (Ambil 08:00 saja dari 08:00:00)
+      const formattedTime = timeString ? timeString.substring(0, 5) : "--:--";
 
-      const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
-      const mIdx = parseInt(ymd[1]) - 1;
-      
-      return {
-        d: `${ymd[2]} ${months[mIdx] || ymd[1]} ${ymd[0]}`,
-        t: timePart ? timePart.substring(0, 5) : "--:--"
-      };
+      return { d: formattedDate, t: formattedTime };
     } catch (e) {
       return { d: "-", t: "--:--" };
     }
@@ -129,11 +129,12 @@ export default function HistoryPage() {
               const status = item.status?.toLowerCase();
               const startTime = new Date(item.created_at).getTime();
               const isTimeOut = (new Date().getTime() - startTime) > (2 * 60 * 60 * 1000);
+              
               const isSuccess = ['settlement', 'success', 'paid', 'capture'].includes(status);
               const isPending = status === 'pending' && !isTimeOut;
               const isHangus = (status === 'pending' && isTimeOut) || ['expire', 'cancel', 'deny'].includes(status);
 
-              // Panggil fungsi format baru
+              // Ambil data tanggal & waktu yang sudah dipisah
               const dateTime = formatTicketDate(item);
 
               return (
@@ -161,14 +162,18 @@ export default function HistoryPage() {
 
                   <div className="flex gap-6 mb-8 p-6 rounded-3xl border bg-blue-50/50 border-blue-100">
                     <div className="flex items-center gap-4 flex-1">
-                        <Calendar size={18} className="text-blue-600" />
+                        <div className="p-3 bg-blue-100 rounded-2xl text-blue-600">
+                            <Calendar size={18} />
+                        </div>
                         <div className="flex flex-col text-left">
                             <span className="text-[10px] font-black text-blue-400 uppercase">Tanggal</span>
                             <span className="text-sm font-black text-blue-900">{dateTime.d}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-4 border-l border-gray-200 pl-6 flex-1">
-                        <Clock size={18} className="text-blue-600" />
+                        <div className="p-3 bg-blue-100 rounded-2xl text-blue-600">
+                            <Clock size={18} />
+                        </div>
                         <div className="flex flex-col text-left">
                             <span className="text-[10px] font-black text-blue-400 uppercase">Waktu</span>
                             <span className="text-sm font-black text-blue-900">{dateTime.t} WIB</span>
@@ -176,11 +181,11 @@ export default function HistoryPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-end border-t pt-8">
+                  <div className="flex justify-between items-end border-t pt-8 border-gray-100">
                     <div className="text-left">
                       <p className="text-[10px] text-gray-400 font-black uppercase mb-3 flex items-center gap-2"><MapPin size={12} /> Rute</p>
                       <div className="text-lg font-black italic uppercase text-blue-900 flex items-center gap-2">
-                        {item.schedule?.origin || item.origin} <ArrowRight size={18} /> {item.schedule?.destination || item.destination}
+                        {item.schedule?.origin} <ArrowRight size={18} /> {item.schedule?.destination}
                       </div>
                     </div>
                     <div className="text-right">
