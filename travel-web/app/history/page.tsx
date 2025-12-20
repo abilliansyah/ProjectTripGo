@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import axiosClient from "@/utils/axiosClient";
 import { Ticket, ArrowRight, Loader2, Clock, Calendar, MapPin } from "lucide-react";
 
-// Komponen Timer dengan format HH:MM:SS berwarna Merah
 const CountdownTimer = ({ createdAt, onExpire }: { createdAt: string; onExpire: () => void }) => {
   const [timeLeft, setTimeLeft] = useState("");
   const [isExpired, setIsExpired] = useState(false);
@@ -33,14 +32,13 @@ const CountdownTimer = ({ createdAt, onExpire }: { createdAt: string; onExpire: 
       setTimeLeft(`${hours}:${minutes}:${seconds}`);
     };
 
-    calculateTime();
     const timer = setInterval(calculateTime, 1000);
     return () => clearInterval(timer);
   }, [createdAt, isExpired, onExpire]);
 
   return (
-    <div className="mt-2 text-[14px] font-black text-red-600 tracking-tighter flex items-center justify-end gap-1">
-       <Clock size={14} /> {timeLeft}
+    <div className="text-[12px] font-black text-red-600 tracking-tighter flex items-center justify-center gap-1 mt-1">
+       <Clock size={12} /> {timeLeft}
     </div>
   );
 };
@@ -67,14 +65,19 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
-  // Format Tanggal Keberangkatan (Contoh: 24 Des 2025)
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
+  // PERBAIKAN: Fungsi format tanggal yang lebih robust
+  const formatDate = (dateString: any) => {
+    if (!dateString) return "Tgl Tidak Ada";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return "-";
+    }
   };
 
   const handleItemClick = (item: any, isExpired: boolean) => {
@@ -83,7 +86,7 @@ export default function HistoryPage() {
     if (status === 'pending') {
       const query = new URLSearchParams({
         order_id: item.order_id,
-        price: (item.total_amount || item.total_price || item.price || 0).toString(),
+        price: (item.total_amount || item.total_price || 0).toString(),
         seat_count: item.seat_count.toString(),
         customer_name: item.customer_name || "",
         customer_email: item.customer_email || "",
@@ -111,6 +114,8 @@ export default function HistoryPage() {
               const status = item.status?.toLowerCase();
               const startTime = new Date(item.created_at).getTime();
               const isTimeOut = (new Date().getTime() - startTime) > (2 * 60 * 60 * 1000);
+              
+              const isSuccess = ['settlement', 'success', 'paid', 'capture'].includes(status);
               const isPending = status === 'pending' && !isTimeOut;
               const isHangus = status === 'pending' && isTimeOut;
 
@@ -119,47 +124,50 @@ export default function HistoryPage() {
                   key={item.order_id || item.id} 
                   onClick={() => handleItemClick(item, isHangus)}
                   className={`bg-white p-6 rounded-[2rem] border transition-all relative overflow-hidden ${
-                    isHangus ? 'grayscale opacity-60 border-gray-200' : 'border-gray-100 shadow-xl shadow-gray-200/50 hover:border-blue-500 cursor-pointer group'
+                    isHangus ? 'grayscale opacity-60 border-gray-200 cursor-not-allowed' : 'border-gray-100 shadow-xl shadow-gray-200/50 hover:border-blue-500 cursor-pointer group'
                   }`}
                 >
-                  {/* Bagian Atas: Order ID & Status */}
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Order ID</p>
-                      <h3 className="text-gray-800 font-black tracking-tight italic uppercase">{item.order_id}</h3>
+                      <h3 className="text-gray-800 font-black tracking-tight italic uppercase leading-none">{item.order_id}</h3>
                     </div>
-                    <div className="text-right">
-                        <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic ${
-                        isHangus ? 'bg-gray-200 text-gray-500' :
-                        status === 'settlement' || status === 'success' || status === 'paid'
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-orange-100 text-orange-600'
+                    
+                    {/* PERBAIKAN POSISI: Centered Status & Timer */}
+                    <div className="flex flex-col items-center min-w-[100px]">
+                        <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic w-full text-center ${
+                        isHangus ? 'bg-gray-100 text-gray-400' :
+                        isSuccess ? 'bg-green-100 text-green-600' :
+                        'bg-orange-100 text-orange-600' // Orange Pekat untuk Pending
                         }`}>
-                        {isHangus ? 'HANGUS' : status}
+                        {isHangus ? 'HANGUS' : (isSuccess ? 'SUCCESS' : 'PENDING')}
                         </span>
                         {isPending && <CountdownTimer createdAt={item.created_at} onExpire={() => fetchHistory()} />}
                     </div>
                   </div>
 
-                  {/* Bagian Tengah: Jadwal Keberangkatan (BARU) */}
+                  {/* Bagian Jadwal */}
                   <div className="flex gap-6 mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1">
                         <Calendar size={14} className="text-blue-600" />
                         <div className="flex flex-col">
                             <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Tanggal</span>
-                            <span className="text-xs font-bold text-blue-900">{formatDate(item.schedule?.departure_date)}</span>
+                            <span className="text-xs font-bold text-blue-900">
+                                {item.schedule?.departure_date ? formatDate(item.schedule.departure_date) : "-"}
+                            </span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 border-l border-blue-200 pl-6">
+                    <div className="flex items-center gap-2 border-l border-blue-200 pl-6 flex-1">
                         <Clock size={14} className="text-blue-600" />
                         <div className="flex flex-col">
                             <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Waktu</span>
-                            <span className="text-xs font-bold text-blue-900 uppercase">{item.schedule?.departure_time || "--:--"} WIB</span>
+                            <span className="text-xs font-bold text-blue-900 uppercase">
+                                {item.schedule?.departure_time || "--:--"} WIB
+                            </span>
                         </div>
                     </div>
                   </div>
 
-                  {/* Bagian Bawah: Rute & Harga */}
                   <div className="flex justify-between items-end border-t border-gray-50 pt-6">
                     <div>
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-1">
@@ -172,7 +180,7 @@ export default function HistoryPage() {
                     <div className="text-right">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-1">Total Bayar</p>
                       <p className={`text-xl font-black italic tracking-tighter ${isHangus ? 'text-gray-500' : 'text-blue-600'}`}>
-                        IDR {Number(item.total_amount || item.total_price || item.price || 0).toLocaleString('id-ID')}
+                        IDR {Number(item.total_amount || item.total_price || 0).toLocaleString('id-ID')}
                       </p>
                     </div>
                   </div>
